@@ -161,6 +161,7 @@ void EvohomeClient::get_temperatureControlSystems(int location, int gateway)
 		{
 			j_tcs = json_object_array_get_idx(j_list, i);
 			locations[location].gateways[gateway].temperatureControlSystems[i].content = json_object_get_string(j_tcs);
+			get_zones(location, gateway, i);
 		}
 	}
 }
