@@ -76,6 +76,14 @@ std::string _json_find_object_key;
 std::string _json_find_object_needle;
 
 
+std::string _int_to_string(int myint)
+{
+	stringstream ss;
+	ss << myint;
+	return ss.str();
+}
+
+
 bool _json_cmp_val(json_object *input, std::string key, std::string val)
 {
 	json_object *j_res;
@@ -105,7 +113,7 @@ bool _json_find_object(json_object *array, json_object **result, std::string key
 		if ( (json_object_object_get_ex(*result, key.c_str(), &j_val)) &&
 		     (strcmp(json_object_get_string(j_val),needle.c_str())==0) )
 		{
-			_json_find_object_index = i + 1;
+			_json_find_object_index = i;
 			return true;
 		}
 	}
@@ -135,34 +143,58 @@ bool _json_find_next_object(json_object *array, json_object **result)
 }
 
 
+
 /************************************************************************
  *									*
  *	Public tools							*
  *									*
  ************************************************************************/
 
-std::string DomoticzClient::get_hwid(int hw_type)
+int DomoticzClient::get_hwid(int hw_type)
 {
-	stringstream ss;
-	ss << hw_type;
-	return get_hwid(ss.str());
+	return get_hwid(_int_to_string(hw_type), "");
 }
-std::string DomoticzClient::get_hwid(std::string hw_type)
+int DomoticzClient::get_hwid(std::string hw_type)
+{
+	return get_hwid(hw_type, "");
+}
+int DomoticzClient::get_hwid(int hw_type, std::string hw_name)
+{
+	return get_hwid(_int_to_string(hw_type), hw_name);
+}
+int DomoticzClient::get_hwid(std::string hw_type, std::string hw_name)
 {
 	json_object *j_res = json_tokener_parse(send_receive_data("/json.htm?type=hardware").c_str());
 	json_object *j_list, *j_hw;
 	if ( ! json_object_object_get_ex(j_res, "result", &j_list) )
-		return "";
+		return -1;
 	int l = json_object_array_length(j_list);
 	int i;
 	for (i = 0; i < l; i++)
 	{
 		if ( _json_find_object(j_list, &j_hw, "Type", hw_type.c_str()) )
-			return _json_get_val(j_hw, "idx");
+			if ( (hw_name == "") || (_json_get_val(j_hw, "Name") == hw_name.c_str()) )
+				return atoi( _json_get_val(j_hw, "idx").c_str() );
 	}
-	return "";
+	return -1;
 }
 
+
+/*
+ *  Create hardware 
+ */
+
+int DomoticzClient::create_hardware(int hwtype, std::string hwname)
+{
+	return create_hardware(_int_to_string(hwtype), hwname);
+}
+int DomoticzClient::create_hardware(std::string hwtype, std::string hwname)
+{
+	stringstream ss;
+	ss << "/json.htm?type=command&param=addhardware&htype=" << hwtype << "&port=1&name=" << hwname << "&enabled=true&datatimeout=0";
+	send_receive_data(ss.str());
+	return get_hwid(hwtype, hwname);
+}
 
 
 /************************************************************************
@@ -171,17 +203,30 @@ std::string DomoticzClient::get_hwid(std::string hw_type)
  *									*
  ************************************************************************/
 
-bool DomoticzClient::get_evo_devices()
+bool DomoticzClient::get_devices(int hwid)
 {
-	std::string evohome_id;
+	return get_devices(_int_to_string(hwid));
+}
+bool DomoticzClient::get_devices(std::string hwid)
+{
 	json_object *j_res = json_tokener_parse(send_receive_data("/json.htm?type=devices&displayhidden=1&used=all").c_str());
 	json_object *j_list, *j_dev;
 	if ( ! json_object_object_get_ex(j_res, "result", &j_list) )
 		return false;
 
-	if ( _json_find_object(j_list, &j_dev, "HardwareID", get_hwid("40").c_str()) )
+	std::string evohome_id, used, index;
+	int i = 0;
+
+	if ( _json_find_object(j_list, &j_dev, "HardwareID", hwid.c_str()) )
 	{
-		evohome_id = _json_get_val(j_dev, "ID");
+		used = _json_get_val(j_dev, "Used");
+		if (used != "0")
+			evohome_id = _json_get_val(j_dev, "ID");
+		else
+		{
+			evohome_id = _int_to_string(i);
+			i++;
+		}
 		devices[evohome_id].ID = evohome_id;
 		devices[evohome_id].idx = _json_get_val(j_dev, "idx");
 		devices[evohome_id].SubType = _json_get_val(j_dev, "SubType");
@@ -191,7 +236,14 @@ bool DomoticzClient::get_evo_devices()
 
 	while ( _json_find_next_object(j_list, &j_dev) )
 	{
-		evohome_id = _json_get_val(j_dev, "ID");
+		used = _json_get_val(j_dev, "Used");
+		if (used != "0")
+			evohome_id = _json_get_val(j_dev, "ID");
+		else
+		{
+			evohome_id = _int_to_string(i);
+			i++;
+		}
 		devices[evohome_id].ID = evohome_id;
 		devices[evohome_id].idx = _json_get_val(j_dev, "idx");
 		devices[evohome_id].SubType = _json_get_val(j_dev, "SubType");
@@ -199,4 +251,30 @@ bool DomoticzClient::get_evo_devices()
 	}
 	return true;
 }
+
+
+/*
+ * Create Evohome device
+ */
+void DomoticzClient::create_evohome_device(int hwid, std::string devicetype)
+{
+	create_evohome_device(hwid, atoi(devicetype.c_str()));
+}
+void DomoticzClient::create_evohome_device(std::string hwid, int devicetype)
+{
+	create_evohome_device(atoi(hwid.c_str()), devicetype);
+}
+void DomoticzClient::create_evohome_device(std::string hwid, std::string devicetype)
+{
+	create_evohome_device(atoi(hwid.c_str()), atoi(devicetype.c_str()));
+}
+void DomoticzClient::create_evohome_device(int hwid, int devicetype)
+{
+	stringstream ss;
+	ss << "/json.htm?type=createevohomesensor&idx=" << hwid << "&sensortype=" << devicetype;
+	send_receive_data(ss.str());
+}
+
+
+
 

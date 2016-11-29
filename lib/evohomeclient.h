@@ -13,23 +13,27 @@
 class evo_zone
 {
 	public:
-	std::string content;
-	std::string status;
+	std::string zoneId;
+	json_object *installationInfo;
+	json_object *status;
+	json_object *schedule;
 };
 
 class evo_temperatureControlSystem
 {
 	public:
-	std::string content;
-	std::string status;
+	std::string systemId;
+	json_object *installationInfo;
+	json_object *status;
 	std::map<int,evo_zone> zones;
 };
 
 class evo_gateway
 {
 	public:
-	std::string content;
-	std::string status;
+	std::string gatewayId;
+	json_object *installationInfo;
+	json_object *status;
 	std::map<int,evo_temperatureControlSystem> temperatureControlSystems;
 };
 
@@ -37,8 +41,9 @@ class evo_gateway
 class evo_location
 {
 	public:
-	std::string content;
-	std::string status;
+	std::string locationId;
+	json_object *installationInfo;
+	json_object *status;
 	std::map<int,evo_gateway> gateways;
 };
 
@@ -50,7 +55,10 @@ class EvohomeClient
 	private:
 	std::map<std::string,std::string> auth_info;
 	std::map<std::string,std::string> account_info;
-	struct curl_slist *evoheader = NULL;
+	struct curl_slist *evoheader;
+
+	std::string send_receive_data(std::string url, curl_slist *header);
+	std::string send_receive_data(std::string url, std::string postdata, curl_slist *header);
 
 	void init();
 
@@ -60,17 +68,8 @@ class EvohomeClient
 	std::map<std::string,std::string> sys_info;
 	std::map<std::string,std::string> schedule;
 
-
-
-
 	EvohomeClient(std::string user, std::string password);
 	void cleanup();
-
-
-
-
-	std::string send_receive_data(std::string url, curl_slist *header);
-	std::string send_receive_data(std::string url, std::string postdata, curl_slist *header);
 
 	void login(std::string user, std::string password);
 	void user_account();
@@ -83,12 +82,25 @@ class EvohomeClient
 
 	bool get_status(int location);
 
+
 	std::string json_get_val(std::string s_json, std::string key);
+	std::string json_get_val(json_object *j_json, std::string key);
+	std::string json_get_val(std::string s_json, std::string key1, std::string key2);
+	std::string json_get_val(json_object *j_json, std::string key1, std::string key2);
+
 	std::string get_locationId(unsigned int location);
 
 	void get_schedule(std::string zoneId);
 	std::string get_next_switchpoint(std::string zoneId);
-};
 
+	
+	bool schedules_backup(std::string filename);
+	bool read_schedules_from_file(std::string filename);
+
+	int get_location_by_ID(std::string locationId);
+	int get_gateway_by_ID(int location, std::string gatewayId);
+	int get_temperatureControlSystem_by_ID(int location, int gateway, std::string systemId);
+	int get_zone_by_ID(int location, int gateway, int temperatureControlSystem, std::string systemId);
+};
 
 #endif
