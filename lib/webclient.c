@@ -101,9 +101,13 @@ void web_kill_all()
  */
 std::string web_send_receive_data(std::string connection, std::string url, curl_slist *header)
 {
-	return web_send_receive_data(connection, url, "", header);
+	return web_send_receive_data(connection, url, "", header, "POST");
 }
 std::string web_send_receive_data(std::string connection, std::string url, std::string postdata, curl_slist *header)
+{
+	return web_send_receive_data(connection, url, postdata, header, "POST");
+}
+std::string web_send_receive_data(std::string connection, std::string url, std::string postdata, curl_slist *header, std::string method)
 {
 	CURL *conn = curl_connections[connection];
 	curl_easy_reset(conn);
@@ -115,8 +119,11 @@ std::string web_send_receive_data(std::string connection, std::string url, std::
 	result.size = 0;
 	curl_easy_setopt(conn, CURLOPT_WRITEDATA, (void *)&result);
 	if (postdata.length()>0)
+	{
 		curl_easy_setopt(conn, CURLOPT_POSTFIELDS,postdata.c_str());
-
+		if (method != "POST")
+			curl_easy_setopt(conn, CURLOPT_CUSTOMREQUEST, method.c_str());
+	}
 	curl_easy_setopt(conn, CURLOPT_URL, url.c_str());
 	res = curl_easy_perform(conn);
 
