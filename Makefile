@@ -19,5 +19,5 @@ evo-demo: $(OBJ) src/evo-demo.o
 distclean: clean
 
 clean:
-	rm -f $(OBJ) evo-demo evo-update
+	rm -f $(OBJ) src/evo-demo.o src/evo-update.o evo-demo evo-update
 
