@@ -1,13 +1,17 @@
 CC      = g++
 CFLAGS  +=  -c -Wall
 LDFLAGS +=  -lcurl -ljson-c
-OBJ     = $(patsubst %.c,%.o,$(wildcard src/*.c)) $(patsubst %.c,%.o,$(wildcard lib/*.c))
+OBJ     = $(patsubst %.c,%.o,$(wildcard lib/*.c))
 DEPS    = $(wildcard src/*.h) $(wildcard lib/*.h)
 
-all: evo-demo
+all: evo-demo evo-update
 
-evo-demo: $(OBJ)
-	$(CC) $(OBJ) $(LDFLAGS) -o evo-demo
+
+evo-update: src/evo-update.o lib/base64.o lib/domoticzclient.o lib/evohomeclient.o lib/webclient.o
+	$(CC) src/evo-update.o lib/base64.o lib/domoticzclient.o lib/evohomeclient.o lib/webclient.o $(LDFLAGS) -o evo-update
+
+evo-demo: $(OBJ) src/evo-demo.o
+	$(CC) src/evo-demo.o $(OBJ) $(LDFLAGS) -o evo-demo
 
 %.o: %.c $(DEP)
 	$(CC) $(CFLAGS) $(EXTRAFLAGS) $< -o $@
@@ -15,14 +19,5 @@ evo-demo: $(OBJ)
 distclean: clean
 
 clean:
-	rm -f $(OBJ) evo-demo
-
-install: all
-	install -d -m 0755 $(DESTDIR)/usr/bin
-	install -m 0755 ef $(DESTDIR)/usr/bin
-
-uninstall:
-	rm -f $(DESTDIR)/usr/bin/evo-demo
-	rmdir --ignore-fail-on-non-empty -p $(DESTDIR)/usr/bin
-
+	rm -f $(OBJ) evo-demo evo-update
 

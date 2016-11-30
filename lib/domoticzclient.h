@@ -9,6 +9,7 @@
 #include <json-c/json.h>
 #include <map>
 
+
 class domoticz_device
 {
 	public:
@@ -52,6 +53,13 @@ class DomoticzClient
 	void create_evohome_device(std::string hwid, int devicetype);
 	void create_evohome_device(std::string hwid, std::string devicetype);
 	void create_evohome_device(int hwid, int devicetype);
-};
 
+	void update_system_dev(std::string idx, std::string systemId, std::string modelType, std::string setmode_script);
+	void update_system_mode(std::string idx, std::string currentmode);
+
+	void update_zone_dev(std::string idx, std::string dhwId, std::string dev_name, std::string setdhw_script);
+	void update_zone_status(std::string idx, std::string temperature, std::string state, std::string zonemode, std::string until);
+
+
+};
 #endif

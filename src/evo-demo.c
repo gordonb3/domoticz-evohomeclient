@@ -5,7 +5,7 @@
 #include <cstring>
 #include <time.h>
 
-#include "evo.h"
+#include "evo-demo.h"
 #include "../lib/domoticzclient.h"
 #include "../lib/evohomeclient.h"
 #include "../lib/webclient.h"

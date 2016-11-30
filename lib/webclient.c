@@ -122,7 +122,7 @@ std::string web_send_receive_data(std::string connection, std::string url, std::
 
 	if(res != CURLE_OK)
 	{
-		cerr << "Could not connect to " << connection << " server: " << curl_easy_strerror(res) << endl;;
+		cerr << "ERROR: Could not connect to " << connection << " server, client responds: " << curl_easy_strerror(res) << endl;
 		free(result.payload);
 		web_kill_all();
 		exit(1);

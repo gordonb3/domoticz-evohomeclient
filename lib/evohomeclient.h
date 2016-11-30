@@ -101,6 +101,11 @@ class EvohomeClient
 	int get_gateway_by_ID(int location, std::string gatewayId);
 	int get_temperatureControlSystem_by_ID(int location, int gateway, std::string systemId);
 	int get_zone_by_ID(int location, int gateway, int temperatureControlSystem, std::string systemId);
+
+
+	bool has_dhw(int location, int gateway, int temperatureControlSystem);
+	bool has_dhw(evo_temperatureControlSystem *tcs);
+
 };
 
 #endif

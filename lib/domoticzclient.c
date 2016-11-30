@@ -3,8 +3,10 @@
 #include <ctime>
 #include "webclient.h"
 #include "domoticzclient.h"
+#include "base64.h"
 
 using namespace std;
+
 
 /************************************************************************
  *									*
@@ -274,6 +276,49 @@ void DomoticzClient::create_evohome_device(int hwid, int devicetype)
 	ss << "/json.htm?type=createevohomesensor&idx=" << hwid << "&sensortype=" << devicetype;
 	send_receive_data(ss.str());
 }
+
+
+
+void DomoticzClient::update_system_dev(std::string idx, std::string systemId, std::string modelType, std::string setmode_script)
+{
+	int smslen = setmode_script.length();
+	int encoded_data_length = Base64encode_len(smslen);
+	char* base64_string = (char*)malloc(encoded_data_length);
+	Base64encode(base64_string, setmode_script.c_str(), smslen);
+	stringstream ss;
+	ss << "/json.htm?type=setused&idx=" << idx << "&deviceid=" << systemId << "&used=true&name=" << modelType << "&strparam1=" << base64_string;
+	send_receive_data(ss.str());
+}
+
+
+void DomoticzClient::update_system_mode(std::string idx, std::string currentmode)
+{
+	stringstream ss;
+	ss << "/json.htm?type=command&param=switchmodal&idx=" << idx << "&status=" << currentmode << "&action=0&ooc=1";
+	send_receive_data(ss.str());
+}
+
+
+
+void DomoticzClient::update_zone_dev(std::string idx, std::string dhwId, std::string dev_name, std::string setdhw_script)
+{
+	int smslen = setdhw_script.length();
+	int encoded_data_length = Base64encode_len(smslen);
+	char* base64_string = (char*)malloc(encoded_data_length);
+	Base64encode(base64_string, setdhw_script.c_str(), smslen);
+	stringstream ss;
+	ss << "/json.htm?type=setused&idx=" << idx << "&deviceid=" << dhwId << "&used=true&name=" << dev_name << "&strparam1=" << base64_string;
+	send_receive_data(ss.str());
+}
+
+
+void DomoticzClient::update_zone_status(std::string idx, std::string temperature, std::string state, std::string zonemode, std::string until)
+{
+	stringstream ss;
+	ss << "/json.htm?type=command&param=udevice&idx=" << idx << "&nvalue=0&svalue=" << temperature << ";" << state << ";" << zonemode << ";" << until; 
+	send_receive_data(ss.str());
+}
+
 
 
 

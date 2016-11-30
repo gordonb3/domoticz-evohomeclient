@@ -430,12 +430,12 @@ bool EvohomeClient::schedules_backup(std::string filename)
 					json_object_object_get_ex(j_tcs, "zones", &j_list);
 					int l = json_object_array_length(j_list);
 
+					json_object *j_zoneId, *j_name;
 					stringstream url;
 					int i;
 					for (i = 0; i < l; i++)
 					{
 						j_zone = json_object_array_get_idx(j_list, i);
-						json_object *j_zoneId, *j_name;
 
 						json_object_object_get_ex(j_zone, "name", &j_name);
 						json_object_object_get_ex(j_zone, "zoneId", &j_zoneId);
@@ -453,6 +453,26 @@ bool EvohomeClient::schedules_backup(std::string filename)
 						json_object_object_add(j_zonesched,"dailySchedules", j_days);
 						json_object_object_add(j_tcssched,s_zoneId.c_str(), j_zonesched);
 					}
+/* Hot Water
+ * GB3: I hope I got this right - I have no way of checking this because my installation does not have such a device
+ */
+					json_object *j_dhw;
+					if (json_object_object_get_ex(j_tcs, "dhw", &j_dhw))
+					{
+						json_object_object_get_ex(j_zone, "dhwId", &j_zoneId);
+						std::string s_zoneId = json_object_get_string(j_zoneId);
+						url.str("");
+						url << "/WebAPI/emea/api/v1/domesticHotWater/" << s_zoneId << "/schedule";
+						json_object *j_week = json_tokener_parse(send_receive_data(url.str(), evoheader).c_str());
+						json_object *j_days;
+						json_object_object_get_ex(j_week, "dailySchedules", &j_days);
+
+						json_object *j_zonesched = json_object_new_object();
+						json_object_object_add(j_zonesched,"dhwId", j_zoneId);
+						json_object_object_add(j_zonesched,"dailySchedules", j_days);
+						json_object_object_add(j_tcssched,s_zoneId.c_str(), j_zonesched);
+					}
+
 					json_object_object_add(j_gwsched, s_tcsId.c_str(), j_tcssched);
 				}
 				json_object_object_add(j_locsched, s_gwId.c_str(), j_gwsched);
@@ -582,6 +602,18 @@ int EvohomeClient::get_zone_by_ID(int location, int gateway, int temperatureCont
 }
 
 
+bool EvohomeClient::has_dhw(int location, int gateway, int temperatureControlSystem)
+{
+	evo_temperatureControlSystem *tcs = &locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem];
+	return has_dhw(tcs);
+}
+
+bool EvohomeClient::has_dhw(evo_temperatureControlSystem *tcs)
+{
+	json_object *j_dhw;
+	return json_object_object_get_ex(tcs->status, "dhw", &j_dhw);
+}
+
 /************************************************************************
  *									*
  *									*
@@ -597,18 +629,6 @@ std::string EvohomeClient::get_locationId(unsigned int location)
 		return "";
 
 	return json_get_val(locations[location].installationInfo, "locationInfo", "locationId");
-
-
-/*
-	json_object *j_loc = locations[location].installationInfo;
-	json_object *j_inf, *j_lid;
-	if ( ( json_object_object_get_ex( j_loc, "locationInfo", &j_inf )) &&
-	     ( json_object_object_get_ex( j_inf, "locationId", &j_lid )) )
-	{
-		return json_object_get_string(j_lid);
-	}
-	return "";
-*/
 }
 
 
