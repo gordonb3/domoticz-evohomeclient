@@ -13,6 +13,7 @@
 #include <map>
 #include <cstring>
 #include <time.h>
+#include <stdlib.h>
 #include "evo-update.h"
 
 
@@ -25,6 +26,13 @@
 #define SCHEDULE_CACHE "schedules.json"
 #endif
 
+#ifndef LOCKFILE
+#define LOCKFILE "/var/tmp/evo-noup.tmp"
+#endif
+
+#ifndef LOCKSECONDS
+#define LOCKSECONDS 60
+#endif
 
 #define SETMODE_SCRIPT "/evo-setmode.sh {status}"
 #define SETDHW_SCRIPT "/evo-setdhw.sh {deviceid} {mode} {state} {until}"
@@ -338,6 +346,23 @@ int main(int argc, char** argv)
 {
 // get current time
 	now = time(0);
+
+	ifstream myfile (LOCKFILE);
+	if ( myfile.is_open() )
+	{
+		string line;
+		getline(myfile,line);
+		myfile.close();
+
+		if ( (unsigned long)now < strtoul(line.c_str(),0,10) )
+		{
+			cout << "Update not allowed at this time - please try again after " << LOCKSECONDS << " seconds\n";
+			exit(0);
+		}
+		else
+			if( remove(LOCKFILE) != 0 )
+				cout << "Error deleting lockfile\n";
+	}
 
 // set defaults
 	evoconfig["hwname"] = "evohome";

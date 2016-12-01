@@ -25,6 +25,15 @@ using namespace std;
 #define CONF_FILE "evoconfig"
 #endif
 
+#ifndef LOCKFILE
+#define LOCKFILE "/var/tmp/evo-noup.tmp"
+#endif
+
+#ifndef LOCKSECONDS
+#define LOCKSECONDS 60
+#endif
+
+
 std::string configfile;
 std::map<std::string,std::string> evoconfig;
 
@@ -147,26 +156,36 @@ void exit_error(std::string message)
 	exit(1);
 }
 
+void touch_lockfile()
+{
+	ofstream myfile;
+	myfile.open (LOCKFILE, ios::out | ios::trunc); 
+	if ( myfile.is_open() )
+	{
+		time_t now = time(0) + LOCKSECONDS;
+		myfile << (unsigned long)now;
+		myfile.close();
+	}
+}
+
 
 int main(int argc, char** argv)
 {
+	touch_lockfile(); // don't overload the server
+
 	configfile = CONF_FILE;
 	parse_args(argc, argv);
-
-// override defaults with settings from config file
 	read_evoconfig();
 
-// connect to Evohome server
 	if (verbose)
 		cout << "connect to Evohome server\n";
 	EvohomeClient eclient = EvohomeClient(evoconfig["usr"],evoconfig["pw"]);
 
-// retrieve Evohome installation
 	if (verbose)
 		cout << "retrieve Evohome installation info\n";
 	eclient.full_installation();
 
-// set Evohome heating system
+	// set Evohome heating system
 	int location = 0;
 	int gateway = 0;
 	int temperatureControlSystem = 0;

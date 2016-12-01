@@ -15,8 +15,22 @@
 using namespace std;
 
 
+#ifndef CONF_FILE
 #define CONF_FILE "evoconfig"
-#define SCHEDULE_CACHE "schedules.backup"
+#endif
+
+#ifndef BACKUP_FILE
+#define BACKUP_FILE "schedules.backup"
+#endif
+
+#ifndef SCHEDULE_CACHE
+#define SCHEDULE_CACHE "schedules.json"
+#endif
+
+#ifndef LOCKFILE
+#define LOCKFILE "/var/tmp/evo-noup.tmp"
+#endif
+
 
 
 #define HARDWARE_TYPE "40"

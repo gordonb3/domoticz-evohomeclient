@@ -29,6 +29,13 @@ using namespace std;
 #define BACKUP_FILE "schedules.backup"
 #endif
 
+#ifndef LOCKFILE
+#define LOCKFILE "/var/tmp/evo-noup.tmp"
+#endif
+
+#ifndef LOCKSECONDS
+#define LOCKSECONDS 60
+#endif
 
 std::string backupfile;
 std::string configfile;
@@ -166,8 +173,23 @@ void exit_error(std::string message)
 }
 
 
+void touch_lockfile()
+{
+	ofstream myfile;
+	myfile.open (LOCKFILE, ios::out | ios::trunc); 
+	if ( myfile.is_open() )
+	{
+		time_t now = time(0) + LOCKSECONDS;
+		myfile << (unsigned long)now;
+		myfile.close();
+	}
+}
+
+
 int main(int argc, char** argv)
 {
+	touch_lockfile(); // don't overload the server
+
 	backupfile = BACKUP_FILE;
 	configfile = CONF_FILE;
 	parse_args(argc, argv);
