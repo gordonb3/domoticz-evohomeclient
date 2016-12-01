@@ -41,7 +41,7 @@ int tzoffset=-1;
 /*
  * Read the config file
  */
-void read_evoconfig()
+bool read_evoconfig()
 {
 	ifstream myfile (CONF_FILE);
 	if ( myfile.is_open() )
@@ -78,7 +78,9 @@ void read_evoconfig()
 			}
 		}
 		myfile.close();
+		return true;
 	}
+	return false;
 }
 
 /*
@@ -365,7 +367,8 @@ int main(int argc, char** argv)
 			zone["until"] = get_next_switchpoint(tcs, it->first);
 		else
 		{
-			// this is stupid: overrides are relative to UTC instead of localtime
+			// this is stupid: Honeywell is mixing UTC and localtime in their returns
+			// for display we need to convert overrides to localtime
 			if (tzoffset == -1)
 			{
 				// calculate timezone offset once

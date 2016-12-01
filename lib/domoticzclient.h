@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
+ *
+ * Json client for Domoticz
+ *
+ *
+ *
+ */
+
 #ifndef _DomoticzClient
 #define _DomoticzClient
 
@@ -59,6 +68,7 @@ class DomoticzClient
 
 	void update_zone_dev(std::string idx, std::string dhwId, std::string dev_name, std::string setdhw_script);
 	void update_zone_status(std::string idx, std::string temperature, std::string state, std::string zonemode, std::string until);
+
 
 
 };

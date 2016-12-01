@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
+ *
+ * Json client for Evohome
+ *
+ *
+ *
+ */
+
+
+
 #include <malloc.h>
 #include <cstring>
 #include <ctime>
@@ -43,6 +54,7 @@ void EvohomeClient::init()
  */
 void EvohomeClient::cleanup()
 {
+	curl_slist_free_all(evoheader);
 	web_connection_cleanup("evohome");
 }
 
@@ -62,6 +74,13 @@ std::string EvohomeClient::send_receive_data(std::string url, std::string postda
 	return web_send_receive_data("evohome", ss_url.str(), postdata, header);
 }
 
+std::string EvohomeClient::put_receive_data(std::string url, std::string postdata, curl_slist *header)
+{
+
+	stringstream ss_url;
+	ss_url << EVOHOME_HOST << url;
+	return web_send_receive_data("evohome", ss_url.str(), postdata, header, "PUT");
+}
 
 /************************************************************************
  *									*
@@ -79,8 +98,11 @@ void EvohomeClient::login(std::string user, std::string password)
 	struct curl_slist *lheader = NULL;
 	lheader = curl_slist_append(lheader,"Authorization: Basic YjAxM2FhMjYtOTcyNC00ZGJkLTg4OTctMDQ4YjlhYWRhMjQ5OnRlc3Q=");
 	lheader = curl_slist_append(lheader,"Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
+	lheader = curl_slist_append(lheader,"content-type: application/json");
+	lheader = curl_slist_append(lheader,"charsets: utf-8");
 
 	stringstream pdata;
+
 	pdata << "installationInfo-Type=application%2Fx-www-form-urlencoded;charset%3Dutf-8";
 	pdata << "&Host=rs.alarmnet.com%2F";
 	pdata << "&Cache-Control=no-store%20no-cache";
@@ -91,8 +113,29 @@ void EvohomeClient::login(std::string user, std::string password)
 	pdata << "&Password=" << urlencode(password);
 	pdata << "&Connection=Keep-Alive";
 
+/*
+	pdata << "{ ";
+	pdata << "'installationInfo-Type': 'application/x-www-form-urlencoded;charset=utf-8'";
+	pdata << ", ";
+	pdata << "'Host': 'rs.alarmnet.com/'";
+	pdata << ", ";
+	pdata << "'Cache-Control': 'no-store% o-cache'";
+	pdata << ", ";
+	pdata << "'Pragma': 'no-cache'";
+	pdata << ", ";
+	pdata << "'grant_type': 'password'";
+	pdata << ", ";
+	pdata << "'scope': 'EMEA-V1-Basic MEA-V1-Anonymous EMEA-V1-Get-Current-User-Account'";
+	pdata << ", ";
+	pdata << "'Username': '" << user << "'";
+	pdata << ", ";
+	pdata << "'Password': '" << password << "'";
+	pdata << ", ";
+	pdata << "'Connection': 'Keep-Alive'";
+	pdata << " }";
+*/
 	std::string s_res = send_receive_data("/Auth/OAuth/Token", pdata.str(), lheader);
-
+cout << s_res << endl;
 	if (s_res.find("<title>") != std::string::npos)
 	{
 		cout << "Login to Evohome server failed - server responds: ";
@@ -121,7 +164,9 @@ void EvohomeClient::login(std::string user, std::string password)
 	atoken << "Authorization: bearer " << auth_info["access_token"];
 	evoheader = curl_slist_append(evoheader,atoken.str().c_str());
 	evoheader = curl_slist_append(evoheader,"applicationId: b013aa26-9724-4dbd-8897-048b9aada249");
-	evoheader = curl_slist_append(evoheader,"Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
+	evoheader = curl_slist_append(evoheader,"accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
+	evoheader = curl_slist_append(evoheader,"content-type: application/json");
+	evoheader = curl_slist_append(evoheader,"charsets: utf-8");
 
 	curl_slist_free_all(lheader);
 	user_account();
@@ -538,6 +583,96 @@ bool EvohomeClient::read_schedules_from_file(std::string filename)
 	}
 	return true;
 }
+
+
+
+void EvohomeClient::set_schedule(std::string zoneId, std::string zoneType, json_object *schedule)
+{
+	stringstream url;
+	url << "/WebAPI/emea/api/v1/" << zoneType << "/" << zoneId << "/schedule";
+	std::string postdata = json_object_get_string(schedule);
+	stringstream ss;
+	unsigned int i;
+	unsigned int j = 0;
+	char c;
+	char word[30];
+	for (i = 0; i < postdata.length(); i++)
+	{
+		c = postdata[i];
+		if ( ((c|0x20) <= 0x60) || ((c|0x20) >= 0x7b) )
+		{
+			if (j > 0)
+			{
+				word[j] = '\0';
+				if (strcmp(word,"Temperature") == 0)
+					ss << "TargetTemperature";
+				else
+					ss << word;
+				j = 0;
+			}
+			ss << c;
+		}
+		else
+		{
+			if (j == 0)
+				word[j] = toupper(c);
+			else
+				word[j] = c;
+			j++;
+		}
+	}
+
+	put_receive_data(url.str(), ss.str(), evoheader);
+}
+
+void EvohomeClient::set_zone_schedule(std::string zoneId, json_object *schedule)
+{
+	set_schedule(zoneId, "temperatureZone", schedule);
+}
+
+void EvohomeClient::set_dhw_schedule(std::string zoneId, json_object *schedule)
+{
+	set_schedule(zoneId, "domesticHotWater", schedule);
+}
+
+
+bool EvohomeClient::schedules_restore(std::string filename)
+{
+	if ( ! read_schedules_from_file(filename) )
+		return false;
+
+	cout << "Restoring schedules from file " << filename << endl;
+	unsigned int l,g,t,z;
+	for (l = 0; l < locations.size(); l++)
+	{
+		cout << "  Location: " << locations[l].locationId << endl;
+
+		for (g = 0; g < locations[l].gateways.size(); g++)
+		{
+			cout << "    Gateway: " << locations[l].gateways[g].gatewayId << endl;
+
+			for (t = 0; t < locations[l].gateways[g].temperatureControlSystems.size(); t++)
+			{
+				cout << "      System: " << locations[l].gateways[g].temperatureControlSystems[t].systemId << endl;
+	
+				for (z = 0; z < locations[l].gateways[g].temperatureControlSystems[t].zones.size(); z++)
+				{
+					cout << "        Zone: " << json_get_val(locations[l].gateways[g].temperatureControlSystems[t].zones[z].status, "name") << endl;
+					json_object *j_sched = json_object_new_object();
+					json_object_object_add(j_sched,"DailySchedules", locations[l].gateways[g].temperatureControlSystems[t].zones[z].schedule);
+
+					set_zone_schedule( locations[l].gateways[g].temperatureControlSystems[t].zones[z].zoneId, j_sched);
+				}
+			}
+		}
+	}
+	return true;
+}
+
+
+
+
+
 
 
 

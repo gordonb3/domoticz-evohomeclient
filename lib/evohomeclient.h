@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
+ *
+ * Json client for Evohome
+ *
+ *
+ *
+ */
+
 #ifndef _EvohomeClient
 #define _EvohomeClient
 
@@ -59,6 +68,7 @@ class EvohomeClient
 
 	std::string send_receive_data(std::string url, curl_slist *header);
 	std::string send_receive_data(std::string url, std::string postdata, curl_slist *header);
+	std::string put_receive_data(std::string url, std::string postdata, curl_slist *header);
 
 	void init();
 
@@ -106,6 +116,12 @@ class EvohomeClient
 	bool has_dhw(int location, int gateway, int temperatureControlSystem);
 	bool has_dhw(evo_temperatureControlSystem *tcs);
 
+	void set_schedule(std::string zoneId, std::string zoneType, json_object *schedule);
+	void set_zone_schedule(std::string zoneId, json_object *schedule);
+	void set_dhw_schedule(std::string zoneId, json_object *schedule);
+
+
+	bool schedules_restore(std::string filename);
 };
 
 #endif

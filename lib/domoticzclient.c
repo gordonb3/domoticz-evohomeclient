@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
+ *
+ * Json client for Domoticz
+ *
+ *
+ *
+ */
+
 #include <malloc.h>
 #include <cstring>
 #include <ctime>
@@ -8,13 +17,6 @@
 using namespace std;
 
 
-/************************************************************************
- *									*
- *	Json client for Domoticz	 				*
- *									*
- *	Original version 2016-11-25 by gordon@bosvangennip.nl		*
- *									*
- ************************************************************************/
 
 /*
  * Class construct
@@ -24,6 +26,8 @@ DomoticzClient::DomoticzClient(std::string host)
 	domoticzhost = host;
 	domoticzheader = NULL;
 	domoticzheader = curl_slist_append(domoticzheader,"Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
+	domoticzheader = curl_slist_append(domoticzheader,"content-type: application/json");
+	domoticzheader = curl_slist_append(domoticzheader,"charsets: utf-8");
 	init();
 }
 
@@ -318,8 +322,6 @@ void DomoticzClient::update_zone_status(std::string idx, std::string temperature
 	ss << "/json.htm?type=command&param=udevice&idx=" << idx << "&nvalue=0&svalue=" << temperature << ";" << state << ";" << zonemode << ";" << until; 
 	send_receive_data(ss.str());
 }
-
-
 
 
 

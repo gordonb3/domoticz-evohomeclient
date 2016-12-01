@@ -1,26 +1,34 @@
+/*
+ * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
+ *
+ * Demo app for connecting to Evohome and Domoticz
+ *
+ *
+ *
+ */
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <map>
 #include <cstring>
 #include <time.h>
-
 #include "evo-update.h"
-#include "../lib/domoticzclient.h"
-#include "../lib/evohomeclient.h"
-#include "../lib/webclient.h"
-
-using namespace std;
 
 
+
+#ifndef CONF_FILE
 #define CONF_FILE "evoconfig"
-#define SCHEDULE_CACHE "schedules.backup"
+#endif
+
+#ifndef SCHEDULE_CACHE
+#define SCHEDULE_CACHE "schedules.json"
+#endif
 
 
 #define SETMODE_SCRIPT "/evo-setmode.sh {status}"
 #define SETDHW_SCRIPT "/evo-setdhw.sh {deviceid} {mode} {state} {until}"
 #define SETZONE_SCRIPT "/evo-settemp.sh {deviceid} {mode} {setpoint} {until}"
-
 
 #define HARDWARE_TYPE "40"
 
@@ -34,12 +42,14 @@ using namespace std;
 #define ZONE_SUBTYPE_ID "70"
 
 
-std::map<std::string,std::string> evoconfig;
+using namespace std;
 
+
+std::string configfile;
+std::map<std::string,std::string> evoconfig;
 
 time_t now;
 int tzoffset;
-std::string configfile;
 
 std::string ERROR = "ERROR: ";
 std::string WARN = "WARNING: ";
@@ -299,6 +309,7 @@ std::string local_to_utc(std::string utc_time)
 }
 
 
+/*
 std::string utc_to_local(std::string utc_time)
 {
 	if (tzoffset == -1)
@@ -320,9 +331,7 @@ std::string utc_to_local(std::string utc_time)
 	sprintf(until,"%04d-%02d-%02dT%02d:%02d:%02dZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,ltime.tm_hour,ltime.tm_min,ltime.tm_sec);
 	return string(until);
 }
-
-
-
+*/
 
 
 int main(int argc, char** argv)

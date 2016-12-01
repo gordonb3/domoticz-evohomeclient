@@ -1,3 +1,7 @@
+#ifndef _WebClient
+#define _WebClient
+
+
 #include <string>
 #include <curl/curl.h>
 #include <map>
@@ -13,3 +17,5 @@ void web_connection_cleanup(std::string connection);
 
 std::string urlencode(std::string str);
 
+
+#endif
