@@ -14,7 +14,7 @@
 #include <cstring>
 #include <time.h>
 
-#include "evo-schedule-backup.h"
+#include "evo-setmode.h"
 
 
 
@@ -25,17 +25,11 @@ using namespace std;
 #define CONF_FILE "evoconfig"
 #endif
 
-#ifndef BACKUP_FILE
-#define BACKUP_FILE "schedules.backup"
-#endif
-
-
-std::string backupfile;
 std::string configfile;
 std::map<std::string,std::string> evoconfig;
 
-bool dobackup = true;
 bool verbose = false;
+std::string mode = "";
 
 std::string ERROR = "ERROR: ";
 std::string WARN = "WARNING: ";
@@ -95,16 +89,14 @@ void usage(std::string mode)
 	}
 	if (mode == "short")
 	{
-		cout << "Usage: evo-schedule-backup [-hrv] [-c file] [-f file]" << endl;
-		cout << "Type \"evo-schedule-backup --help\" for more help" << endl;
+		cout << "Usage: evo-setmode [-hv] [-c file] <evohome mode>" << endl;
+		cout << "Type \"evo-setmode --help\" for more help" << endl;
 		exit(0);
 	}
-	cout << "Usage: evo-schedule-backup [OPTIONS]" << endl;
+	cout << "Usage: evo-setmode [OPTIONS] <evohome mode>" << endl;
 	cout << endl;
-	cout << "  -r, --restore           restore a previous backup" << endl;
 	cout << "  -v, --verbose           print a lot of information" << endl;
 	cout << "  -c, --conf=FILE         use FILE for server settings and credentials" << endl;
-	cout << "  -f, --file=FILE         use FILE for backup and restore" << endl;
 	cout << "  -h, --help              display this help and exit" << endl;
 	exit(0);
 }
@@ -119,9 +111,6 @@ void parse_args(int argc, char** argv) {
 			for (size_t j=1;j<word.length();j++) {
 				if (word[j] == 'h') {
 					usage("short");
-					exit(0);
-				} else if (word[j] == 'r') {
-					dobackup = false;
 				} else if (word[j] == 'v') {
 					verbose = true;
 				} else if (word[j] == 'c') {
@@ -129,33 +118,26 @@ void parse_args(int argc, char** argv) {
 						usage("badparm");
 					i++;
 					configfile = argv[i];
-				} else if (word[j] == 'f') {
-					if (j+1 < word.length())
-						usage("badparm");
-					i++;
-					backupfile = argv[i];
 				} else {
 					usage("badparm");
-					exit(1);
 				}
 			}
 		} else if (word == "--help") {
 			usage("long");
 			exit(0);
-		} else if (word == "--restore") {
-			dobackup = false;
 		} else if (word == "--verbose") {
 			verbose = true;
 		} else if (word.substr(0,7) == "--conf=") {
 			configfile = word.substr(7);
-		} else if (word.substr(0,7) == "--file=") {
-			backupfile = word.substr(7);
+		} else if (mode == "") {
+			mode = argv[i];
 		} else {
 			usage("badparm");
-			exit(1);
 		}
 		i++;
 	}
+	if (mode == "")
+		usage("short");
 }
 
 
@@ -168,7 +150,6 @@ void exit_error(std::string message)
 
 int main(int argc, char** argv)
 {
-	backupfile = BACKUP_FILE;
 	configfile = CONF_FILE;
 	parse_args(argc, argv);
 
@@ -185,20 +166,54 @@ int main(int argc, char** argv)
 		cout << "retrieve Evohome installation info\n";
 	eclient.full_installation();
 
-	if (dobackup)	// backup
-	{
-		cout << "Start backup of Evohome schedules\n";
-		if ( ! eclient.schedules_backup(backupfile) )
-			exit_error(ERROR+"failed to open backup file '"+backupfile+"'");
-		cout << "Done!\n";
+// set Evohome heating system
+	int location = 0;
+	int gateway = 0;
+	int temperatureControlSystem = 0;
+
+	bool is_single_heating_system = ( (eclient.locations.size() == 1) &&
+					(eclient.locations[0].gateways.size() == 1) &&
+					(eclient.locations[0].gateways[0].temperatureControlSystems.size() == 1)
+					);
+	bool is_unique_heating_system = is_single_heating_system;
+
+	if ( evoconfig.find("locationId") != evoconfig.end() ) {
+		if (verbose)
+			cout << "using location ID from " << CONF_FILE << endl;
+		location = eclient.get_location_by_ID(evoconfig["locationId"]);
+		if (location == -1)
+			exit_error(ERROR+"the Evohome location ID specified in "+CONF_FILE+" cannot be found");
+		is_unique_heating_system = ( (eclient.locations[location].gateways.size() == 1) &&
+						(eclient.locations[location].gateways[0].temperatureControlSystems.size() == 1)
+						);
 	}
-	else		// restore
-	{
-		cout << "Start restore of Evohome schedules\n";
-		if ( ! eclient.schedules_restore(backupfile) )
-			exit_error(ERROR+"failed to open backup file '"+backupfile+"'");
-		cout << "Done!\n";
+	if ( evoconfig.find("gatewayId") != evoconfig.end() ) {
+		if (verbose)
+			cout << "using gateway ID from " << CONF_FILE << endl;
+		gateway = eclient.get_gateway_by_ID(location, evoconfig["gatewayId"]);
+		if (gateway == -1)
+			exit_error(ERROR+"the Evohome gateway ID specified in "+CONF_FILE+" cannot be found");
+		is_unique_heating_system = (eclient.locations[location].gateways[gateway].temperatureControlSystems.size() == 1);
 	}
+	if ( evoconfig.find("systemId") != evoconfig.end() ) {
+		if (verbose)
+			cout << "using system ID from " << CONF_FILE << endl;
+		temperatureControlSystem = eclient.get_temperatureControlSystem_by_ID(location, gateway, evoconfig["systemId"]);
+		if (temperatureControlSystem == -1)
+			exit_error(ERROR+"the Evohome system ID specified in "+CONF_FILE+" cannot be found");
+		is_unique_heating_system = true;
+	}
+
+	if ( ( ! is_single_heating_system) && ( ! is_unique_heating_system) )
+		exit_error(ERROR+"multiple Evohome systems found - don't know which one to use");
+
+	evo_temperatureControlSystem* tcs = &eclient.locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem];
+
+if ( ! eclient.set_system_mode(tcs->systemId,mode) )
+	exit_error(ERROR+"failed to set system mode to "+mode);
+	
+if (verbose)
+	cout << "updated system status to " << mode << endl;
 
 	eclient.cleanup();
 

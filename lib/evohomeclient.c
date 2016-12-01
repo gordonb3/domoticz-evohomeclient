@@ -98,11 +98,25 @@ void EvohomeClient::login(std::string user, std::string password)
 	struct curl_slist *lheader = NULL;
 	lheader = curl_slist_append(lheader,"Authorization: Basic YjAxM2FhMjYtOTcyNC00ZGJkLTg4OTctMDQ4YjlhYWRhMjQ5OnRlc3Q=");
 	lheader = curl_slist_append(lheader,"Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
-	lheader = curl_slist_append(lheader,"content-type: application/json");
+//	lheader = curl_slist_append(lheader,"content-type: application/json");
 	lheader = curl_slist_append(lheader,"charsets: utf-8");
 
 	stringstream pdata;
 
+// json does not work - server responds that grant_type 'password' is not supported :~
+/*
+	pdata << "{ ";
+	pdata << "'installationInfo-Type': 'application/x-www-form-urlencoded;charset=utf-8'";
+	pdata << ", 'Host': 'rs.alarmnet.com/'";
+	pdata << ", 'Cache-Control': 'no-store% o-cache'";
+	pdata << ", 'Pragma': 'no-cache'";
+	pdata << ", 'grant_type': 'password'";
+	pdata << ", 'scope': 'EMEA-V1-Basic MEA-V1-Anonymous EMEA-V1-Get-Current-User-Account'";
+	pdata << ", 'Username': '" << user << "'";
+	pdata << ", 'Password': '" << password << "'";
+	pdata << ", 'Connection': 'Keep-Alive'";
+	pdata << " }";
+*/
 	pdata << "installationInfo-Type=application%2Fx-www-form-urlencoded;charset%3Dutf-8";
 	pdata << "&Host=rs.alarmnet.com%2F";
 	pdata << "&Cache-Control=no-store%20no-cache";
@@ -113,30 +127,11 @@ void EvohomeClient::login(std::string user, std::string password)
 	pdata << "&Password=" << urlencode(password);
 	pdata << "&Connection=Keep-Alive";
 
-/*
-	pdata << "{ ";
-	pdata << "'installationInfo-Type': 'application/x-www-form-urlencoded;charset=utf-8'";
-	pdata << ", ";
-	pdata << "'Host': 'rs.alarmnet.com/'";
-	pdata << ", ";
-	pdata << "'Cache-Control': 'no-store% o-cache'";
-	pdata << ", ";
-	pdata << "'Pragma': 'no-cache'";
-	pdata << ", ";
-	pdata << "'grant_type': 'password'";
-	pdata << ", ";
-	pdata << "'scope': 'EMEA-V1-Basic MEA-V1-Anonymous EMEA-V1-Get-Current-User-Account'";
-	pdata << ", ";
-	pdata << "'Username': '" << user << "'";
-	pdata << ", ";
-	pdata << "'Password': '" << password << "'";
-	pdata << ", ";
-	pdata << "'Connection': 'Keep-Alive'";
-	pdata << " }";
-*/
+
 	std::string s_res = send_receive_data("/Auth/OAuth/Token", pdata.str(), lheader);
-cout << s_res << endl;
-	if (s_res.find("<title>") != std::string::npos)
+	curl_slist_free_all(lheader);
+
+	if (s_res.find("<title>") != std::string::npos) // got an HTML page
 	{
 		cout << "Login to Evohome server failed - server responds: ";
 		int i = s_res.find("<title>");
@@ -149,11 +144,19 @@ cout << s_res << endl;
 			i++;
 			c = html[i];
 		}
-		cout << endl << endl;
+		cout << endl;
+		web_connection_cleanup("evohome");
 		exit(1);
 	}
 
 	json_object *j_ret = json_tokener_parse(s_res.c_str());
+	json_object *j_msg;
+	if ( (json_object_object_get_ex(j_ret, "error", &j_msg)) || (json_object_object_get_ex(j_ret, "message", &j_msg)) )
+	{
+		cout << "Login to Evohome server failed - server responds: " << json_object_get_string(j_msg) << endl;
+		web_connection_cleanup("evohome");
+		exit(1);
+	}
 
 	json_object_object_foreach(j_ret, key, val)
 	{
@@ -168,7 +171,6 @@ cout << s_res << endl;
 	evoheader = curl_slist_append(evoheader,"content-type: application/json");
 	evoheader = curl_slist_append(evoheader,"charsets: utf-8");
 
-	curl_slist_free_all(lheader);
 	user_account();
 }
 
@@ -303,7 +305,7 @@ bool EvohomeClient::get_status(int location)
 
 	bool valid_json = true;
 	stringstream url;
-	url << "/WebAPI/emea/api/v1/location/" << get_locationId(location) << "/status?includeTemperatureControlSystems=True";
+	url << "/WebAPI/emea/api/v1/location/" << locations[location].locationId << "/status?includeTemperatureControlSystems=True";
 	locations[location].status = json_tokener_parse(send_receive_data(url.str(), evoheader).c_str());
 
 	// get gateway status
@@ -532,6 +534,7 @@ bool EvohomeClient::schedules_backup(std::string filename)
 	return false;
 }
 
+
 bool EvohomeClient::read_schedules_from_file(std::string filename)
 {
 	stringstream ss;
@@ -625,10 +628,12 @@ void EvohomeClient::set_schedule(std::string zoneId, std::string zoneType, json_
 	put_receive_data(url.str(), ss.str(), evoheader);
 }
 
+
 void EvohomeClient::set_zone_schedule(std::string zoneId, json_object *schedule)
 {
 	set_schedule(zoneId, "temperatureZone", schedule);
 }
+
 
 void EvohomeClient::set_dhw_schedule(std::string zoneId, json_object *schedule)
 {
@@ -668,12 +673,6 @@ bool EvohomeClient::schedules_restore(std::string filename)
 	}
 	return true;
 }
-
-
-
-
-
-
 
 
 /************************************************************************
@@ -742,30 +741,18 @@ bool EvohomeClient::has_dhw(int location, int gateway, int temperatureControlSys
 	evo_temperatureControlSystem *tcs = &locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem];
 	return has_dhw(tcs);
 }
-
 bool EvohomeClient::has_dhw(evo_temperatureControlSystem *tcs)
 {
 	json_object *j_dhw;
 	return json_object_object_get_ex(tcs->status, "dhw", &j_dhw);
 }
 
+
 /************************************************************************
  *									*
  *									*
  *									*
  ************************************************************************/
-
-std::string EvohomeClient::get_locationId(unsigned int location)
-{
-	if (locations.size() == 0)
-		full_installation();
-
-	if (location >= locations.size())
-		return "";
-
-	return json_get_val(locations[location].installationInfo, "locationInfo", "locationId");
-}
-
 
 std::string EvohomeClient::json_get_val(std::string s_json, std::string key)
 {
@@ -797,4 +784,72 @@ std::string EvohomeClient::json_get_val(json_object *j_json, std::string key1, s
 		return json_object_get_string(j_res);
 	return "";
 }
+
+
+/************************************************************************
+ *									*
+ *									*
+ *									*
+ ************************************************************************/
+
+bool verify_date(std::string date)
+{
+	if (date.length() < 10)
+		return false;
+	std:: string s_date = date.substr(0,10);
+	struct tm mtime;
+	mtime.tm_isdst = -1;
+	mtime.tm_year = atoi(date.substr(0, 4).c_str()) - 1900;
+	mtime.tm_mon = atoi(date.substr(5, 2).c_str()) - 1;
+	mtime.tm_mday = atoi(date.substr(8, 2).c_str());
+	mtime.tm_hour = 12; // midday time - prevent date shift because of DST
+	mtime.tm_min = 0;
+	mtime.tm_sec = 0;
+	time_t ntime = mktime(&mtime);
+	ntime--; // prevent compiler warning
+	char rdata[12];
+	sprintf(rdata,"%04d-%02d-%02d",mtime.tm_year+1900,mtime.tm_mon+1,mtime.tm_mday);
+
+cout << "comparing " << s_date << " with " << rdata << endl;
+	return (s_date == string(rdata));
+}
+
+	
+bool EvohomeClient::set_system_mode(std::string systemId, int mode, std::string date_until)
+{
+	stringstream url;
+	url << "/WebAPI/emea/api/v1/temperatureControlSystem/" << systemId << "/mode";
+	stringstream data;
+	data << "{\"SystemMode\":" << mode;
+	if (date_until == "")
+		data << ",\"TimeUntil\":null,\"Permanent\":true}";
+	else
+	{
+		if ( ! verify_date(date_until) )
+			return false;
+		data << ",\"TimeUntil\":\"" << date_until.substr(0,10) << "T00:00:00Z\",\"Permanent\":false}";
+	}
+	put_receive_data(url.str(), data.str(), evoheader);
+	return true;
+}
+
+
+bool EvohomeClient::set_system_mode(std::string systemId, std::string mode, std::string date_until)
+{
+	int i = 0;
+	int s = sizeof(evo_modes);
+	while (s > 0)
+	{
+		if (evo_modes[i] == mode)
+			return set_system_mode(systemId, i, date_until);
+		s -= sizeof(evo_modes[i]);
+		i++;
+	}
+	return false;
+}
+bool EvohomeClient::set_system_mode(std::string systemId, std::string mode)
+{
+	return set_system_mode(systemId, mode, "");
+}
+
 

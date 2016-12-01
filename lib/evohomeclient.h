@@ -71,41 +71,27 @@ class EvohomeClient
 	std::string put_receive_data(std::string url, std::string postdata, curl_slist *header);
 
 	void init();
+	void login(std::string user, std::string password);
+	void user_account();
 
+	void get_gateways(int location);
+	void get_temperatureControlSystems(int location, int gateway);
+	void get_zones(int location, int gateway, int temperatureControlSystem);
+
+	void set_schedule(std::string zoneId, std::string zoneType, json_object *schedule);
 
 	public:
 	std::map<int,evo_location> locations;
 	std::map<std::string,std::string> sys_info;
 	std::map<std::string,std::string> schedule;
 
+
 	EvohomeClient(std::string user, std::string password);
 	void cleanup();
 
-	void login(std::string user, std::string password);
-	void user_account();
-
-
 	void full_installation();
-	void get_gateways(int location);
-	void get_temperatureControlSystems(int location, int gateway);
-	void get_zones(int location, int gateway, int temperatureControlSystem);
-
 	bool get_status(int location);
 
-
-	std::string json_get_val(std::string s_json, std::string key);
-	std::string json_get_val(json_object *j_json, std::string key);
-	std::string json_get_val(std::string s_json, std::string key1, std::string key2);
-	std::string json_get_val(json_object *j_json, std::string key1, std::string key2);
-
-	std::string get_locationId(unsigned int location);
-
-	void get_schedule(std::string zoneId);
-	std::string get_next_switchpoint(std::string zoneId);
-
-	
-	bool schedules_backup(std::string filename);
-	bool read_schedules_from_file(std::string filename);
 
 	int get_location_by_ID(std::string locationId);
 	int get_gateway_by_ID(int location, std::string gatewayId);
@@ -116,12 +102,26 @@ class EvohomeClient
 	bool has_dhw(int location, int gateway, int temperatureControlSystem);
 	bool has_dhw(evo_temperatureControlSystem *tcs);
 
-	void set_schedule(std::string zoneId, std::string zoneType, json_object *schedule);
+
+	bool schedules_backup(std::string filename);
+	bool schedules_restore(std::string filename);
+	bool read_schedules_from_file(std::string filename);
+	void get_schedule(std::string zoneId);
 	void set_zone_schedule(std::string zoneId, json_object *schedule);
 	void set_dhw_schedule(std::string zoneId, json_object *schedule);
+	std::string get_next_switchpoint(std::string zoneId);
 
 
-	bool schedules_restore(std::string filename);
+	bool set_system_mode(std::string systemId, int mode, std::string date_until);
+	bool set_system_mode(std::string systemId, std::string mode, std::string date_until);
+	bool set_system_mode(std::string systemId, std::string mode);
+
+
+	std::string json_get_val(std::string s_json, std::string key);
+	std::string json_get_val(json_object *j_json, std::string key);
+	std::string json_get_val(std::string s_json, std::string key1, std::string key2);
+	std::string json_get_val(json_object *j_json, std::string key1, std::string key2);
+
 };
 
 #endif

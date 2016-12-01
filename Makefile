@@ -4,7 +4,7 @@ LDFLAGS +=  -lcurl -ljson-c
 OBJ     = $(patsubst %.c,%.o,$(wildcard lib/*.c))
 DEPS    = $(wildcard src/*.h) $(wildcard lib/*.h)
 
-all: evo-demo evo-update evo-schedule-backup
+all: evo-demo evo-update evo-schedule-backup evo-setmode
 
 
 evo-demo: $(OBJ) src/evo-demo.o
@@ -16,11 +16,14 @@ evo-update: src/evo-update.o lib/base64.o lib/domoticzclient.o lib/evohomeclient
 evo-schedule-backup: src/evo-schedule-backup.o lib/evohomeclient.o lib/webclient.o
 	$(CC) src/evo-schedule-backup.o lib/evohomeclient.o lib/webclient.o $(LDFLAGS) -o evo-schedule-backup
 
+evo-setmode: src/evo-setmode.o lib/evohomeclient.o lib/webclient.o
+	$(CC) src/evo-setmode.o lib/evohomeclient.o lib/webclient.o $(LDFLAGS) -o evo-setmode
+
 %.o: %.c $(DEP)
 	$(CC) $(CFLAGS) $(EXTRAFLAGS) $< -o $@
 
 distclean: clean
 
 clean:
-	rm -f $(OBJ) evo-demo evo-update evo-schedule-backup $(wildcard src/*.o)
+	rm -f $(OBJ) $(wildcard src/*.o) evo-demo evo-update evo-schedule-backup evo-setmode 
 
