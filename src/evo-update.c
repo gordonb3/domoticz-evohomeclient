@@ -14,8 +14,9 @@
 #include <cstring>
 #include <time.h>
 #include <stdlib.h>
-#include "evo-update.h"
-
+#include "../lib/domoticzclient.h"
+#include "../lib/evohomeclient.h"
+#include "../lib/evohomeclientv2.h"
 
 
 #ifndef CONF_FILE
@@ -52,64 +53,16 @@
 
 using namespace std;
 
+// Include common functions
+#include "evo-common.c"
 
-std::string configfile;
-std::map<std::string,std::string> evoconfig;
 
 time_t now;
 int tzoffset;
 
-std::string ERROR = "ERROR: ";
-std::string WARN = "WARNING: ";
-
 bool createdev = false;
 bool updatedev = true;
-bool verbose = false;
-
-/*
- * Read the config file
- */
-bool read_evoconfig()
-{
-	ifstream myfile (configfile.c_str());
-	if ( myfile.is_open() )
-	{
-		stringstream key,val;
-		bool isKey = true;
-		string line;
-		unsigned int i;
-		while ( getline(myfile,line) )
-		{
-			if ( (line[0] == '#') || (line[0] == ';') )
-				continue;
-			for (i = 0; i < line.length(); i++)
-			{
-				if ( (line[i] == ' ') || (line[i] == '\'') || (line[i] == '"') || (line[i] == 0x0d) )
-					continue;
-				if (line[i] == '=')
-				{
-					isKey = false;
-					continue;
-				}
-				if (isKey)
-					key << line[i];
-				else
-					val << line[i];
-			}
-			if ( ! isKey )
-			{
-				string skey = key.str();
-				evoconfig[skey] = val.str();
-				isKey = true;
-				key.str("");
-				val.str("");
-			}
-		}
-		myfile.close();
-		return true;
-	}
-	return false;
-}
+bool reloadcache = false;
 
 
 /*
@@ -147,6 +100,7 @@ void usage(std::string mode)
 	cout << "  -u, --utc               assume all times are UTC" << endl;
 	cout << "  -v, --verbose           print a lot of information" << endl;
 	cout << "  -c, --conf=FILE         use FILE for server settings and credentials" << endl;
+	cout << "      --reload-cache      reload the schedules cache from the Evohome server" << endl;
 	cout << "  -h, --help              display this help and exit" << endl;
 	exit(0);
 }
@@ -190,6 +144,8 @@ void parse_args(int argc, char** argv) {
 			verbose = true;
 		} else if (word.substr(0,7) == "--conf=") {
 			configfile = word.substr(7);
+		} else if (word == "--reload-cache") {
+			reloadcache = true;
 		} else {
 			usage("badparm");
 		}
@@ -225,67 +181,6 @@ std::map<std::string,std::string> evo_get_zone_data(evo_zone zone)
 }
 
 
-std::string get_next_switchpoint(evo_temperatureControlSystem* tcs, int zoneId)
-{
-	const std::string weekdays[7] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-	struct tm ltime;
-	localtime_r(&now,&ltime);
-	int year = ltime.tm_year;
-	int month = ltime.tm_mon;
-	int day = ltime.tm_mday;
-	std::string stime;
-	int sdays = json_object_array_length(tcs->zones[zoneId].schedule);
-	int d, i;
-
-	for (d = 0; d < 7; d++)
-	{
-		int wday = (ltime.tm_wday + d) % 7;
-		std::string s_wday = (std::string)weekdays[wday];
-		json_object *j_day, *j_dayname;
-		for (i = 0; i < sdays; i++)
-		{
-			j_day = json_object_array_get_idx(tcs->zones[zoneId].schedule, i);
-			if ( (json_object_object_get_ex(j_day, "dayOfWeek", &j_dayname)) && (strcmp(json_object_get_string(j_dayname), s_wday.c_str()) == 0) )
-				i = sdays;
-		}
-
-		json_object *j_list, *j_sp, *j_tim;
-		json_object_object_get_ex( j_day, "switchpoints", &j_list);
-
-		int l = json_object_array_length(j_list);
-		for (i = 0; i < l; i++)
-		{
-			j_sp = json_object_array_get_idx(j_list, i);
-			json_object_object_get_ex(j_sp, "timeOfDay", &j_tim);
-			stime=json_object_get_string(j_tim);
-			ltime.tm_isdst = -1;
-			ltime.tm_year = year;
-			ltime.tm_mon = month;
-			ltime.tm_mday = day + d;
-			ltime.tm_hour = atoi(stime.substr(0, 2).c_str());
-			ltime.tm_min = atoi(stime.substr(3, 2).c_str());
-			ltime.tm_sec = atoi(stime.substr(6, 2).c_str());
-			time_t ntime = mktime(&ltime);
-			if (ntime > now)
-			{
-				i = l;
-				d = 7;
-			}
-		}
-	}
-	char rdata[30];
-	sprintf(rdata,"%04d-%02d-%02dT%sZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,stime.c_str());
-	return string(rdata);
-}
-
-
-void exit_error(std::string message)
-{
-	cerr << message << endl;
-	exit(1);
-}
-
-
 std::string int_to_string(int myint)
 {
 	stringstream ss;
@@ -304,8 +199,10 @@ std::string local_to_utc(std::string utc_time)
 		tzoffset = difftime(mktime(&utime), now);
 	}
 	struct tm ltime;
-	localtime_r(&now, &ltime);
 	ltime.tm_isdst = -1;
+	ltime.tm_year = atoi(utc_time.substr(0, 4).c_str()) - 1900;
+	ltime.tm_mon = atoi(utc_time.substr(5, 2).c_str()) - 1;
+	ltime.tm_mday = atoi(utc_time.substr(8, 2).c_str());
 	ltime.tm_hour = atoi(utc_time.substr(11, 2).c_str());
 	ltime.tm_min = atoi(utc_time.substr(14, 2).c_str());
 	ltime.tm_sec = atoi(utc_time.substr(17, 2).c_str()) + tzoffset;
@@ -328,8 +225,10 @@ std::string utc_to_local(std::string utc_time)
 		tzoffset = difftime(mktime(&utime), now);
 	}
 	struct tm ltime;
-	localtime_r(&now, &ltime);
 	ltime.tm_isdst = -1;
+	ltime.tm_year = atoi(utc_time.substr(0, 4).c_str()) - 1900;
+	ltime.tm_mon = atoi(utc_time.substr(5, 2).c_str()) - 1;
+	ltime.tm_mday = atoi(utc_time.substr(8, 2).c_str());
 	ltime.tm_hour = atoi(utc_time.substr(11, 2).c_str());
 	ltime.tm_min = atoi(utc_time.substr(14, 2).c_str());
 	ltime.tm_sec = atoi(utc_time.substr(17, 2).c_str()) - tzoffset;
@@ -342,29 +241,15 @@ std::string utc_to_local(std::string utc_time)
 */
 
 
+
 int main(int argc, char** argv)
 {
 // get current time
 	now = time(0);
 
-	ifstream myfile (LOCKFILE);
-	if ( myfile.is_open() )
-	{
-		string line;
-		getline(myfile,line);
-		myfile.close();
+	check_lock_status();
 
-		if ( (unsigned long)now < strtoul(line.c_str(),0,10) )
-		{
-			cout << "Update not allowed at this time - please try again after " << LOCKSECONDS << " seconds\n";
-			exit(0);
-		}
-		else
-			if( remove(LOCKFILE) != 0 )
-				cout << "Error deleting lockfile\n";
-	}
-
-// set defaults
+	// set defaults
 	evoconfig["hwname"] = "evohome";
 	configfile = CONF_FILE;
 	tzoffset = -1;
@@ -376,15 +261,20 @@ int main(int argc, char** argv)
 		exit_error(ERROR+"can't read config file");
 		
 
-// connect to Domoticz server
+	if (verbose)
+		cout << "connect to Domoticz server\n";
 	DomoticzClient dclient = DomoticzClient(get_domoticz_host(evoconfig["url"], evoconfig["port"]));
 
 	int hwid = dclient.get_hwid(HARDWARE_TYPE, evoconfig["hwname"]);
+	if (verbose)
+		cout << "got ID '" << hwid << "' for Evohome hardware with name '" << evoconfig["hwname"] << "'\n";
 
 	if (createdev)
 	{
+		if (verbose)
+			cout << "init mode enabled\ncreate hardware in Domoticz\n";
 		if (hwid >= 0)
-			cout << "WARNING: Hardware device " << evoconfig["hwname"] << " already exists\n";
+			cout << "WARNING: hardware device " << evoconfig["hwname"] << " already exists\n";
 		else
 			hwid = dclient.create_hardware(HARDWARE_TYPE, evoconfig["hwname"]);
 	}
@@ -412,67 +302,81 @@ int main(int argc, char** argv)
 		}
 
 		if (controllers == 0)
+		{
+			if (verbose)
+				cout << "create evohome controller in Domoticz\n";
 			dclient.create_evohome_device(hwid, CONTROLLER_SUBTYPE_ID);
+		}
 		if (dhws == 0)
+		{
+			if (verbose)
+				cout << "create hot water device in Domoticz\n";
 			dclient.create_evohome_device(hwid, HOTWATER_SUBTYPE_ID);
+		}
 		int i;
 		for (i = zones; i < 12; i++)
+		{
+			if (verbose)
+				cout << "create heating device in Domoticz\n";
 			dclient.create_evohome_device(hwid, ZONE_SUBTYPE_ID);
+		}
 
 		if ( (controllers == 0) || (dhws == 0) || (zones < 12) )
 			dclient.get_devices(hwid);
 	}
 	
 
-
-
-// connect to Evohome server
+	if (verbose)
+		cout << "connect to Evohome server\n";
 	EvohomeClient eclient = EvohomeClient(evoconfig["usr"],evoconfig["pw"]);
 
-// retrieve Evohome installation
+	if (verbose)
+		cout << "retrieve Evohome installation info\n";
 	eclient.full_installation();
 
-// set Evohome heating system
-	int location = 0;
-	int gateway = 0;
-	int temperatureControlSystem = 0;
 
-	if ( evoconfig.find("locationId") != evoconfig.end() ) {
-		location = eclient.get_location_by_ID(evoconfig["locationId"]);
-		if (location == -1)
-			exit_error(ERROR+"the Evohome location ID specified in "+CONF_FILE+" cannot be found");
-	}
-	if ( evoconfig.find("gatewayId") != evoconfig.end() ) {
-		gateway = eclient.get_gateway_by_ID(location, evoconfig["gatewayId"]);
-		if (gateway == -1)
-			exit_error(ERROR+"the Evohome gateway ID specified in "+CONF_FILE+" cannot be found");
-	}
+	// set Evohome heating system
+	evo_temperatureControlSystem* tcs = NULL;
+
 	if ( evoconfig.find("systemId") != evoconfig.end() ) {
-		temperatureControlSystem = eclient.get_temperatureControlSystem_by_ID(location, gateway, evoconfig["systemId"]);
-		if (temperatureControlSystem == -1)
-			exit_error(ERROR+"the Evohome system ID specified in "+CONF_FILE+" cannot be found");
+		if (verbose)
+			cout << "using systemId from " << CONF_FILE << endl;
+ 		tcs = eclient.get_temperatureControlSystem_by_ID(evoconfig["systemId"]);
+		if (tcs == NULL)
+			exit_error(ERROR+"the Evohome systemId specified in "+CONF_FILE+" cannot be found");
 	}
-	evo_temperatureControlSystem* tcs = &eclient.locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem];
+	else if (eclient.is_single_heating_system())
+		tcs = &eclient.locations[0].gateways[0].temperatureControlSystems[0];
+	else
+		select_temperatureControlSystem(eclient);
 
-// retrieve Evohome status
-	if ( !	eclient.get_status(location) )  cout << "status fail" << endl;
+	if (tcs == NULL)
+		exit_error(ERROR+"multiple Evohome systems found - don't know which one to use for status");
+
+	if (verbose)
+		cout << "retrieve Evohome status\n";
+	if ( !	eclient.get_status(tcs->locationId) )
+		exit_error(ERROR+"failed to retrieve status");
 
 /* retrieving schedules is painfully slow as we can only fetch them one zone at a time.
  * luckily schedules do not change very often, so we can use a local cache
  */
-	if ( ! eclient.read_schedules_from_file(SCHEDULE_CACHE) )
+	if ( reloadcache || ( ! eclient.read_schedules_from_file(SCHEDULE_CACHE) ) )
 	{
+		if (verbose)
+			cout << "reloading schedules cache\n";
 		if ( ! eclient.schedules_backup(SCHEDULE_CACHE) )
 			exit_error(ERROR+"failed to open schedule cache file '"+SCHEDULE_CACHE+"'");
 		eclient.read_schedules_from_file(SCHEDULE_CACHE);
 	}
-
-// Update system status
+	if (verbose) {
+		cout << "read schedules from cache\n";
+		cout << "start write of Evohome data to Domoticz:\n";
+	}
+	// Update system status
 	std::string systemId = eclient.json_get_val(tcs->installationInfo, "systemId");
 	if (verbose)
-	{
-		cout << "Change Evohome system status to '" << eclient.json_get_val(tcs->status, "systemModeStatus", "mode") << "'\n";
-	}
+		cout << " - change Evohome system status to '" << eclient.json_get_val(tcs->status, "systemModeStatus", "mode") << "'\n";
 	dclient.update_system_mode(dclient.devices[systemId].idx, eclient.json_get_val(tcs->status, "systemModeStatus", "mode"));
 	if (updatedev)
 	{
@@ -480,8 +384,8 @@ int main(int argc, char** argv)
 		sms << evoconfig["srt"] << SETMODE_SCRIPT;
 		if (verbose)
 		{
-			cout << "Change Evohome system name to '" << eclient.json_get_val(tcs->installationInfo, "modelType") << "'\n";
-			cout << "Change setmode script path to '" << sms.str() << "'\n";
+			cout << " - change Evohome system name to '" << eclient.json_get_val(tcs->installationInfo, "modelType") << "'\n";
+			cout << " - change setmode script path to '" << sms.str() << "'\n";
 		}
 		if (dclient.devices.find(systemId) == dclient.devices.end())
 
@@ -490,9 +394,9 @@ int main(int argc, char** argv)
 	}
 
 
-/* Update hot water status
- * GB3: I hope I got this right - I have no way of checking this because my installation does not have such a device
- */
+	/* Update hot water status
+	 * GB3: I hope I got this right - I have no way of checking this because my installation does not have such a device
+	 */
 	if (eclient.has_dhw(tcs))
 	{
 		json_object *j_dhw;
@@ -506,7 +410,8 @@ int main(int argc, char** argv)
 		if (dhw_zonemode == "TemporaryOverride")
 			dhw_until = eclient.json_get_val(j_dhw, "stateStatus", "until");
 		else
-			dhw_until = local_to_utc(get_next_switchpoint(tcs, atoi(dhwId.c_str())));
+			dhw_until = local_to_utc(eclient.get_next_switchpoint(tcs, atoi(dhwId.c_str())));
+
 
 		std::string idx;
 		if (dclient.devices.find(dhwId) == dclient.devices.end())
@@ -519,7 +424,7 @@ int main(int argc, char** argv)
 				s_newzone = int_to_string(newzone);
 			}
 			if (dclient.devices.find(int_to_string(newzone)) == dclient.devices.end())
-				cerr << "WARNING: Can't register new Hot Water device because you have no free zones available for this hardware in Domoticz\n";
+				cerr << "WARNING: can't register new Hot Water device because you have no free zones available for this hardware in Domoticz\n";
 			else
 				idx = dclient.devices[s_newzone].idx;
 			newzone++;
@@ -530,7 +435,7 @@ int main(int argc, char** argv)
 
 		if (verbose)
 		{
-			cout << "Change status of Hot Water device: temperature = " << dhw_temperature << ", state = " << dhw_state;
+			cout << " - change status of Hot Water device: temperature = " << dhw_temperature << ", state = " << dhw_state;
 			cout << ", mode = " << dhw_zonemode << ", until = " << dhw_until << endl;
 		}
 		dclient.update_zone_status(idx, dhw_temperature, dhw_state, dhw_zonemode, dhw_until);
@@ -541,7 +446,7 @@ int main(int argc, char** argv)
 			sms << evoconfig["srt"] << SETDHW_SCRIPT;
 			if (verbose)
 			{
-				cout << "Change hotwater script path to '" << sms.str() << "'\n";
+				cout << " - change hotwater script path to '" << sms.str() << "'\n";
 			}
 			dclient.update_zone_dev(idx, dhwId, "Hot Water", sms.str());
 		}
@@ -549,12 +454,12 @@ int main(int argc, char** argv)
 
 
 
-// Update zones
+	// Update zones
 	for (std::map<int, evo_zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
 	{
 		std::map<std::string,std::string> zone = evo_get_zone_data(it->second);
 		if (zone["until"].length() == 0)
-			zone["until"] = local_to_utc(get_next_switchpoint(tcs, it->first));
+			zone["until"] = local_to_utc(eclient.get_next_switchpoint(tcs, it->first));
 		std::string idx;
 		if (dclient.devices.find(zone["zoneId"]) == dclient.devices.end())
 		{
@@ -566,7 +471,7 @@ int main(int argc, char** argv)
 				s_newzone = int_to_string(newzone);
 			}
 			if (dclient.devices.find(int_to_string(newzone)) == dclient.devices.end())
-				cerr << "WARNING: Can't register new Evohome zone because you have no free zones available for this hardware in Domoticz\n";
+				cerr << "WARNING: can't register new Evohome zone because you have no free zones available for this hardware in Domoticz\n";
 			else
 				idx = dclient.devices[s_newzone].idx;
 			newzone++;
@@ -580,19 +485,21 @@ int main(int argc, char** argv)
 			sms << evoconfig["srt"] << SETZONE_SCRIPT;
 			if (verbose)
 			{
-				cout << "Set name of zone device " << idx << " to '" << zone["name"] << "'\n";
-				cout << "Change zone script path to '" << sms.str() << "'\n";
+				cout << " - set name of zone device " << idx << " to '" << zone["name"] << "'\n";
+				cout << " - change zone script path to '" << sms.str() << "'\n";
 			}
 			dclient.update_zone_dev(idx, zone["zoneId"], zone["name"], sms.str());
 		}
 		if (verbose)
 		{
-			cout << "Change status of zone " << zone["name"] << ": temperature = " << zone["temperature"] << ", setpoint = ";
+			cout << " - change status of zone " << zone["name"] << ": temperature = " << zone["temperature"] << ", setpoint = ";
 			cout  << zone["targetTemperature"] << ", mode = " << zone["setpointMode"] << ", until = " << zone["until"] << endl;
 		}
 		dclient.update_zone_status(idx, zone["temperature"], zone["targetTemperature"], zone["setpointMode"], zone["until"]);
 	}
 
+	if (verbose)
+		cout << "Done!\n";
 	eclient.cleanup();
 	dclient.cleanup();
 

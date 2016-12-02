@@ -14,12 +14,6 @@
 #include <cstring>
 #include <time.h>
 
-#include "evo-schedule-backup.h"
-
-
-
-using namespace std;
-
 
 #ifndef CONF_FILE
 #define CONF_FILE "evoconfig"
@@ -37,60 +31,15 @@ using namespace std;
 #define LOCKSECONDS 60
 #endif
 
+// Include common functions
+#include "evo-common.c"
+
+using namespace std;
+
 std::string backupfile;
-std::string configfile;
-std::map<std::string,std::string> evoconfig;
 
 bool dobackup = true;
-bool verbose = false;
 
-std::string ERROR = "ERROR: ";
-std::string WARN = "WARNING: ";
-
-/*
- * Read the config file
- */
-bool read_evoconfig()
-{
-	ifstream myfile (configfile.c_str());
-	if ( myfile.is_open() )
-	{
-		stringstream key,val;
-		bool isKey = true;
-		string line;
-		unsigned int i;
-		while ( getline(myfile,line) )
-		{
-			if ( (line[0] == '#') || (line[0] == ';') )
-				continue;
-			for (i = 0; i < line.length(); i++)
-			{
-				if ( (line[i] == ' ') || (line[i] == '\'') || (line[i] == '"') || (line[i] == 0x0d) )
-					continue;
-				if (line[i] == '=')
-				{
-					isKey = false;
-					continue;
-				}
-				if (isKey)
-					key << line[i];
-				else
-					val << line[i];
-			}
-			if ( ! isKey )
-			{
-				string skey = key.str();
-				evoconfig[skey] = val.str();
-				isKey = true;
-				key.str("");
-				val.str("");
-			}
-		}
-		myfile.close();
-		return true;
-	}
-	return false;
-}
 
 
 void usage(std::string mode)
@@ -162,26 +111,6 @@ void parse_args(int argc, char** argv) {
 			exit(1);
 		}
 		i++;
-	}
-}
-
-
-void exit_error(std::string message)
-{
-	cerr << message << endl;
-	exit(1);
-}
-
-
-void touch_lockfile()
-{
-	ofstream myfile;
-	myfile.open (LOCKFILE, ios::out | ios::trunc); 
-	if ( myfile.is_open() )
-	{
-		time_t now = time(0) + LOCKSECONDS;
-		myfile << (unsigned long)now;
-		myfile.close();
 	}
 }
 

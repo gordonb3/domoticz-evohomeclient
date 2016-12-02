@@ -14,12 +14,6 @@
 #include <cstring>
 #include <time.h>
 
-#include "evo-setmode.h"
-
-
-
-using namespace std;
-
 
 #ifndef CONF_FILE
 #define CONF_FILE "evoconfig"
@@ -34,59 +28,12 @@ using namespace std;
 #endif
 
 
-std::string configfile;
-std::map<std::string,std::string> evoconfig;
+using namespace std;
 
-bool verbose = false;
+// Include common functions
+#include "evo-common.c"
+
 std::string mode = "";
-
-std::string ERROR = "ERROR: ";
-std::string WARN = "WARNING: ";
-
-/*
- * Read the config file
- */
-bool read_evoconfig()
-{
-	ifstream myfile (configfile.c_str());
-	if ( myfile.is_open() )
-	{
-		stringstream key,val;
-		bool isKey = true;
-		string line;
-		unsigned int i;
-		while ( getline(myfile,line) )
-		{
-			if ( (line[0] == '#') || (line[0] == ';') )
-				continue;
-			for (i = 0; i < line.length(); i++)
-			{
-				if ( (line[i] == ' ') || (line[i] == '\'') || (line[i] == '"') || (line[i] == 0x0d) )
-					continue;
-				if (line[i] == '=')
-				{
-					isKey = false;
-					continue;
-				}
-				if (isKey)
-					key << line[i];
-				else
-					val << line[i];
-			}
-			if ( ! isKey )
-			{
-				string skey = key.str();
-				evoconfig[skey] = val.str();
-				isKey = true;
-				key.str("");
-				val.str("");
-			}
-		}
-		myfile.close();
-		return true;
-	}
-	return false;
-}
 
 
 void usage(std::string mode)
@@ -150,25 +97,6 @@ void parse_args(int argc, char** argv) {
 }
 
 
-void exit_error(std::string message)
-{
-	cerr << message << endl;
-	exit(1);
-}
-
-void touch_lockfile()
-{
-	ofstream myfile;
-	myfile.open (LOCKFILE, ios::out | ios::trunc); 
-	if ( myfile.is_open() )
-	{
-		time_t now = time(0) + LOCKSECONDS;
-		myfile << (unsigned long)now;
-		myfile.close();
-	}
-}
-
-
 int main(int argc, char** argv)
 {
 	touch_lockfile(); // don't overload the server
@@ -186,53 +114,29 @@ int main(int argc, char** argv)
 	eclient.full_installation();
 
 	// set Evohome heating system
-	int location = 0;
-	int gateway = 0;
-	int temperatureControlSystem = 0;
+	evo_temperatureControlSystem* tcs = NULL;
 
-	bool is_single_heating_system = ( (eclient.locations.size() == 1) &&
-					(eclient.locations[0].gateways.size() == 1) &&
-					(eclient.locations[0].gateways[0].temperatureControlSystems.size() == 1)
-					);
-	bool is_unique_heating_system = is_single_heating_system;
-
-	if ( evoconfig.find("locationId") != evoconfig.end() ) {
-		if (verbose)
-			cout << "using location ID from " << CONF_FILE << endl;
-		location = eclient.get_location_by_ID(evoconfig["locationId"]);
-		if (location == -1)
-			exit_error(ERROR+"the Evohome location ID specified in "+CONF_FILE+" cannot be found");
-		is_unique_heating_system = ( (eclient.locations[location].gateways.size() == 1) &&
-						(eclient.locations[location].gateways[0].temperatureControlSystems.size() == 1)
-						);
-	}
-	if ( evoconfig.find("gatewayId") != evoconfig.end() ) {
-		if (verbose)
-			cout << "using gateway ID from " << CONF_FILE << endl;
-		gateway = eclient.get_gateway_by_ID(location, evoconfig["gatewayId"]);
-		if (gateway == -1)
-			exit_error(ERROR+"the Evohome gateway ID specified in "+CONF_FILE+" cannot be found");
-		is_unique_heating_system = (eclient.locations[location].gateways[gateway].temperatureControlSystems.size() == 1);
-	}
 	if ( evoconfig.find("systemId") != evoconfig.end() ) {
 		if (verbose)
-			cout << "using system ID from " << CONF_FILE << endl;
-		temperatureControlSystem = eclient.get_temperatureControlSystem_by_ID(location, gateway, evoconfig["systemId"]);
-		if (temperatureControlSystem == -1)
-			exit_error(ERROR+"the Evohome system ID specified in "+CONF_FILE+" cannot be found");
-		is_unique_heating_system = true;
+			cout << "using systemId from " << CONF_FILE << endl;
+ 		tcs = eclient.get_temperatureControlSystem_by_ID(evoconfig["systemId"]);
+		if (tcs == NULL)
+			exit_error(ERROR+"the Evohome systemId specified in "+CONF_FILE+" cannot be found");
 	}
+	else if (eclient.is_single_heating_system())
+		tcs = &eclient.locations[0].gateways[0].temperatureControlSystems[0];
+	else
+		select_temperatureControlSystem(eclient);
 
-	if ( ( ! is_single_heating_system) && ( ! is_unique_heating_system) )
+	if (tcs == NULL)
 		exit_error(ERROR+"multiple Evohome systems found - don't know which one to use");
 
-	evo_temperatureControlSystem* tcs = &eclient.locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem];
 
-if ( ! eclient.set_system_mode(tcs->systemId,mode) )
-	exit_error(ERROR+"failed to set system mode to "+mode);
+	if ( ! eclient.set_system_mode(tcs->systemId,mode) )
+		exit_error(ERROR+"failed to set system mode to "+mode);
 	
-if (verbose)
-	cout << "updated system status to " << mode << endl;
+	if (verbose)
+		cout << "updated system status to " << mode << endl;
 
 	eclient.cleanup();
 

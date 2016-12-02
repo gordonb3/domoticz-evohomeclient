@@ -1,6 +1,6 @@
-#fill in username
+#fill in Evohome username
 usr=''
-#fill in pw 
+#fill in Evohome password
 pw=''
 #fill in Domoticz URL
 url='127.0.0.1'
@@ -9,3 +9,14 @@ port='8080'
 #fill in script root e.g. script:///home/<user>/evohome-client script::///usr/local/bin etc
 srt='script:///opt/domoticz/scripts/evohome'
 
+
+#The following applies if you have multiple Evohome systems:
+
+#uncomment the following lines if you like to use the first Evohome system returned
+#change numbers to acces different installations
+;location=0
+;gateway=0
+;controlsystem=0
+
+#or supply the Evohome systemId
+;systemId=''

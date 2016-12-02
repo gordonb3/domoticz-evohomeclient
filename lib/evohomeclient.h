@@ -19,27 +19,33 @@
 #include <map>
 
 
-class evo_zone
+struct evo_zone
 {
 	public:
+	std::string locationId;
+	std::string gatewayId;
+	std::string systemId;
 	std::string zoneId;
 	json_object *installationInfo;
 	json_object *status;
 	json_object *schedule;
 };
 
-class evo_temperatureControlSystem
+struct evo_temperatureControlSystem
 {
 	public:
+	std::string locationId;
+	std::string gatewayId;
 	std::string systemId;
 	json_object *installationInfo;
 	json_object *status;
 	std::map<int,evo_zone> zones;
 };
 
-class evo_gateway
+struct evo_gateway
 {
 	public:
+	std::string locationId;
 	std::string gatewayId;
 	json_object *installationInfo;
 	json_object *status;
@@ -47,7 +53,7 @@ class evo_gateway
 };
 
 
-class evo_location
+struct evo_location
 {
 	public:
 	std::string locationId;
@@ -55,8 +61,6 @@ class evo_location
 	json_object *status;
 	std::map<int,evo_gateway> gateways;
 };
-
-
 
 
 class EvohomeClient
@@ -82,26 +86,24 @@ class EvohomeClient
 
 	public:
 	std::map<int,evo_location> locations;
-	std::map<std::string,std::string> sys_info;
-	std::map<std::string,std::string> schedule;
-
 
 	EvohomeClient(std::string user, std::string password);
 	void cleanup();
 
 	void full_installation();
 	bool get_status(int location);
+	bool get_status(std::string locationId);
 
 
-	int get_location_by_ID(std::string locationId);
-	int get_gateway_by_ID(int location, std::string gatewayId);
-	int get_temperatureControlSystem_by_ID(int location, int gateway, std::string systemId);
-	int get_zone_by_ID(int location, int gateway, int temperatureControlSystem, std::string systemId);
+	evo_location* get_location_by_ID(std::string locationId);
+	evo_gateway* get_gateway_by_ID(std::string gatewayId);
+	evo_temperatureControlSystem* get_temperatureControlSystem_by_ID(std::string systemId);
+	evo_zone* get_zone_by_ID(std::string zoneId);
 
 
 	bool has_dhw(int location, int gateway, int temperatureControlSystem);
 	bool has_dhw(evo_temperatureControlSystem *tcs);
-
+	bool is_single_heating_system();
 
 	bool schedules_backup(std::string filename);
 	bool schedules_restore(std::string filename);
@@ -109,7 +111,9 @@ class EvohomeClient
 	void get_schedule(std::string zoneId);
 	void set_zone_schedule(std::string zoneId, json_object *schedule);
 	void set_dhw_schedule(std::string zoneId, json_object *schedule);
+	std::string get_next_switchpoint(evo_temperatureControlSystem* tcs, int zone);
 	std::string get_next_switchpoint(std::string zoneId);
+	std::string get_next_switchpoint(json_object *schedule);
 
 
 	bool set_system_mode(std::string systemId, int mode, std::string date_until);
@@ -121,6 +125,8 @@ class EvohomeClient
 	std::string json_get_val(json_object *j_json, std::string key);
 	std::string json_get_val(std::string s_json, std::string key1, std::string key2);
 	std::string json_get_val(json_object *j_json, std::string key1, std::string key2);
+
+	evo_temperatureControlSystem* get_zone_temperatureControlSystem(evo_zone* zone);
 
 };
 
