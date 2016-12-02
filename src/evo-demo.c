@@ -12,8 +12,6 @@
 
 #include "../lib/evohomeclientv2.h"
 
-using namespace std;
-
 
 #ifndef CONF_FILE
 #define CONF_FILE "evoconfig"
@@ -45,57 +43,19 @@ using namespace std;
 #define ZONE_SUBTYPE_ID "70"
 
 
-std::map<std::string,std::string> evoconfig;
+
+using namespace std;
+
+// Include common functions
+#include "evo-common.c"
 
 
 time_t now;
 int tzoffset=-1;
 
+bool createdev = false;
+bool updatedev = true;
 
-/*
- * Read the config file
- */
-bool read_evoconfig()
-{
-	ifstream myfile (CONF_FILE);
-	if ( myfile.is_open() )
-	{
-		stringstream key,val;
-		bool isKey = true;
-		string line;
-		unsigned int i;
-		while ( getline(myfile,line) )
-		{
-			if ( (line[0] == '#') || (line[0] == ';') )
-				continue;
-			for (i = 0; i < line.length(); i++)
-			{
-				if ( (line[i] == ' ') || (line[i] == '\'') || (line[i] == '"') || (line[i] == 0x0d) )
-					continue;
-				if (line[i] == '=')
-				{
-					isKey = false;
-					continue;
-				}
-				if (isKey)
-					key << line[i];
-				else
-					val << line[i];
-			}
-			if ( ! isKey )
-			{
-				string skey = key.str();
-				evoconfig[skey] = val.str();
-				isKey = true;
-				key.str("");
-				val.str("");
-			}
-		}
-		myfile.close();
-		return true;
-	}
-	return false;
-}
 
 /*
  * Convert domoticz host settings into fully qualified url prefix
@@ -118,9 +78,6 @@ void usage(std::string mode)
 }
 
 
-bool createdev = false;
-bool updatedev = true;
-bool verbose = false;
 
 void parse_args(int argc, char** argv) {
 	int i=1;
@@ -179,74 +136,6 @@ std::map<std::string,std::string> evo_get_zone_data(evo_zone zone)
 		}
 	}
 	return ret;
-}
-
-
-std::string get_next_switchpoint(evo_temperatureControlSystem* tcs, int zoneId)
-{
-	const std::string weekdays[7] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-	struct tm ltime;
-	localtime_r(&now,&ltime);
-	int year = ltime.tm_year;
-	int month = ltime.tm_mon;
-	int day = ltime.tm_mday;
-	std::string stime;
-	int sdays = json_object_array_length(tcs->zones[zoneId].schedule);
-	int d, i;
-
-	for (d = 0; d < 7; d++)
-	{
-		int wday = (ltime.tm_wday + d) % 7;
-		std::string s_wday = (std::string)weekdays[wday];
-		json_object *j_day, *j_dayname;
-// find day
-		for (i = 0; i < sdays; i++)
-		{
-			j_day = json_object_array_get_idx(tcs->zones[zoneId].schedule, i);
-			if ( (json_object_object_get_ex(j_day, "dayOfWeek", &j_dayname)) && (strcmp(json_object_get_string(j_dayname), s_wday.c_str()) == 0) )
-				i = sdays;
-		}
-
-		json_object *j_list, *j_sp, *j_tim;
-		json_object_object_get_ex( j_day, "switchpoints", &j_list);
-
-		int l = json_object_array_length(j_list);
-		for (i = 0; i < l; i++)
-		{
-			j_sp = json_object_array_get_idx(j_list, i);
-			json_object_object_get_ex(j_sp, "timeOfDay", &j_tim);
-			stime=json_object_get_string(j_tim);
-			ltime.tm_isdst = -1;
-			ltime.tm_year = year;
-			ltime.tm_mon = month;
-			ltime.tm_mday = day + d;
-			ltime.tm_hour = atoi(stime.substr(0, 2).c_str());
-			ltime.tm_min = atoi(stime.substr(3, 2).c_str());
-			ltime.tm_sec = atoi(stime.substr(6, 2).c_str());
-			time_t ntime = mktime(&ltime);
-			if (ntime > now)
-			{
-				i = l;
-				d = 7;
-			}
-		}
-	}
-	char rdata[30];
-	sprintf(rdata,"%04d-%02d-%02dT%sZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,stime.c_str());
-	return string(rdata);
-}
-
-
-
-
-std::string ERROR = "ERROR: ";
-std::string WARN = "WARNING: ";
-
-
-void exit_error(std::string message)
-{
-	cerr << message << endl;
-	exit(1);
 }
 
 
@@ -327,31 +216,26 @@ int main(int argc, char** argv)
 // retrieve Evohome installation
 	eclient.full_installation();
 
-// set Evohome heating system
-	int location = 0;
-	int gateway = 0;
-	int temperatureControlSystem = 0;
+	// set Evohome heating system
+	evo_temperatureControlSystem* tcs = NULL;
 
-	if ( evoconfig.find("locationId") != evoconfig.end() ) {
-		location = eclient.get_location_by_ID(evoconfig["locationId"]);
-		if (location == -1)
-			exit_error(ERROR+"the Evohome location ID specified in "+CONF_FILE+" cannot be found");
-	}
-	if ( evoconfig.find("gatewayId") != evoconfig.end() ) {
-		gateway = eclient.get_gateway_by_ID(location, evoconfig["gatewayId"]);
-		if (gateway == -1)
-			exit_error(ERROR+"the Evohome gateway ID specified in "+CONF_FILE+" cannot be found");
-	}
 	if ( evoconfig.find("systemId") != evoconfig.end() ) {
-		temperatureControlSystem = eclient.get_temperatureControlSystem_by_ID(location, gateway, evoconfig["systemId"]);
-		if (temperatureControlSystem == -1)
-			exit_error(ERROR+"the Evohome system ID specified in "+CONF_FILE+" cannot be found");
+		if (verbose)
+			cout << "using systemId from " << CONF_FILE << endl;
+ 		tcs = eclient.get_temperatureControlSystem_by_ID(evoconfig["systemId"]);
+		if (tcs == NULL)
+			exit_error(ERROR+"the Evohome systemId specified in "+CONF_FILE+" cannot be found");
 	}
-	evo_temperatureControlSystem* tcs = &eclient.locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem];
+	else if (eclient.is_single_heating_system())
+		tcs = &eclient.locations[0].gateways[0].temperatureControlSystems[0];
+	else
+		select_temperatureControlSystem(eclient);
 
+	if (tcs == NULL)
+		exit_error(ERROR+"multiple Evohome systems found - don't know which one to use for status");
 
 // retrieve Evohome status
-	if ( !	eclient.get_status(location) )  cout << "status fail" << endl;
+	if ( !	eclient.get_status(tcs->locationId) )  cout << "status fail" << endl;
 
 
 // retrieving schedules is painfully slow as we can only fetch them one zone at a time.
@@ -378,7 +262,7 @@ int main(int argc, char** argv)
 	{
 		std::map<std::string,std::string> zone = evo_get_zone_data(it->second);
 		if (zone["until"].length() == 0)
-			zone["until"] = get_next_switchpoint(tcs, it->first);
+			zone["until"] = eclient.get_next_switchpoint(tcs, it->first);
 		else
 		{
 			// this is stupid: Honeywell is mixing UTC and localtime in their returns
