@@ -82,7 +82,6 @@ class EvohomeClient
 	void get_temperatureControlSystems(int location, int gateway);
 	void get_zones(int location, int gateway, int temperatureControlSystem);
 
-	void set_schedule(std::string zoneId, std::string zoneType, json_object *schedule);
 
 	public:
 	std::map<int,evo_location> locations;
@@ -90,7 +89,7 @@ class EvohomeClient
 	EvohomeClient(std::string user, std::string password);
 	void cleanup();
 
-	void full_installation();
+	bool full_installation();
 	bool get_status(int location);
 	bool get_status(std::string locationId);
 
@@ -99,7 +98,7 @@ class EvohomeClient
 	evo_gateway* get_gateway_by_ID(std::string gatewayId);
 	evo_temperatureControlSystem* get_temperatureControlSystem_by_ID(std::string systemId);
 	evo_zone* get_zone_by_ID(std::string zoneId);
-
+	evo_temperatureControlSystem* get_zone_temperatureControlSystem(evo_zone* zone);
 
 	bool has_dhw(int location, int gateway, int temperatureControlSystem);
 	bool has_dhw(evo_temperatureControlSystem *tcs);
@@ -108,9 +107,11 @@ class EvohomeClient
 	bool schedules_backup(std::string filename);
 	bool schedules_restore(std::string filename);
 	bool read_schedules_from_file(std::string filename);
-	void get_schedule(std::string zoneId);
-	void set_zone_schedule(std::string zoneId, json_object *schedule);
-	void set_dhw_schedule(std::string zoneId, json_object *schedule);
+	bool get_schedule(std::string zoneId);
+	bool set_schedule(std::string zoneId, std::string zoneType, json_object *schedule);
+	bool set_zone_schedule(std::string zoneId, json_object *schedule);
+	bool set_dhw_schedule(std::string zoneId, json_object *schedule);
+
 	std::string get_next_switchpoint(evo_temperatureControlSystem* tcs, int zone);
 	std::string get_next_switchpoint(std::string zoneId);
 	std::string get_next_switchpoint(json_object *schedule);
@@ -126,7 +127,13 @@ class EvohomeClient
 	std::string json_get_val(std::string s_json, std::string key1, std::string key2);
 	std::string json_get_val(json_object *j_json, std::string key1, std::string key2);
 
-	evo_temperatureControlSystem* get_zone_temperatureControlSystem(evo_zone* zone);
+
+	bool set_temperature(std::string zoneId, std::string temperature, std::string time_until);
+	bool set_temperature(std::string zoneId, std::string temperature);
+	bool cancel_temperature_override(std::string zoneId);
+
+	bool set_dhw_mode(std::string dhwId, std::string mode, std::string time_until);
+	bool set_dhw_mode(std::string systemId, std::string mode);
 
 };
 

@@ -19,13 +19,14 @@
 #include <map>
 
 
-class domoticz_device
+struct domoticz_device
 {
 	public:
 	std::string SubType;
 	std::string idx;
 	std::string Name;
 	std::string ID;
+	std::string Temp;
 };
 
 class DomoticzClient

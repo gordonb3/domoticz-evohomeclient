@@ -93,6 +93,7 @@ void touch_lockfile()
 	}
 }
 
+
 void check_lock_status()
 {
 	time_t now = time(0);
@@ -114,6 +115,7 @@ void check_lock_status()
 	}
 	touch_lockfile(); // don't overload the server
 }
+
 
 evo_temperatureControlSystem* select_temperatureControlSystem(EvohomeClient eclient)
 {
@@ -157,7 +159,6 @@ evo_temperatureControlSystem* select_temperatureControlSystem(EvohomeClient ecli
 
 	return &eclient.locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem];
 }
-
 
 
 

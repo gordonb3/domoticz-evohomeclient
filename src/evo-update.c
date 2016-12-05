@@ -37,7 +37,7 @@
 
 #define SETMODE_SCRIPT "/evo-setmode.sh {status}"
 #define SETDHW_SCRIPT "/evo-setdhw.sh {deviceid} {mode} {state} {until}"
-#define SETZONE_SCRIPT "/evo-settemp.sh {deviceid} {mode} {setpoint} {until}"
+#define SETTEMP_SCRIPT "/evo-settemp.sh {deviceid} {mode} {setpoint} {until}"
 
 #define HARDWARE_TYPE "40"
 
@@ -63,6 +63,7 @@ int tzoffset;
 bool createdev = false;
 bool updatedev = true;
 bool reloadcache = false;
+
 
 
 /*
@@ -104,6 +105,7 @@ void usage(std::string mode)
 	cout << "  -h, --help              display this help and exit" << endl;
 	exit(0);
 }
+
 
 void parse_args(int argc, char** argv) {
 	int i=1;
@@ -156,14 +158,52 @@ void parse_args(int argc, char** argv) {
 }
 
 
-/*
- * Create an associative array with the zone information we need
- */
-std::map<std::string,std::string> evo_get_zone_data(evo_zone zone)
+map<std::string, std::string> evo_get_system_data(evo_temperatureControlSystem* tcs)
 {
-	map<std::string,std::string> ret;
+	map<std::string, std::string> ret;
+	json_object *j_tmp, *j_res;
+	if ( ( json_object_object_get_ex(tcs->status, "systemModeStatus", &j_tmp)) && (json_object_object_get_ex( j_tmp, "mode", &j_res)) )
+		ret["systemMode"] = json_object_get_string(j_res);
+	ret["systemId"] = tcs->systemId;
+	if (updatedev)
+	{
+		if (json_object_object_get_ex(tcs->installationInfo, "modelType", &j_res))
+			ret["modelType"] = json_object_get_string(j_res);
+	}
+	return ret;
+}
 
-	json_object_object_foreach(zone.status, key, val)
+
+map<std::string, std::string> evo_get_dhw_data(evo_temperatureControlSystem* tcs)
+{
+	map<std::string, std::string> ret;
+	json_object *j_dhw, *j_tmp, *j_res;
+	if (json_object_object_get_ex(tcs->status, "dhw", &j_dhw))
+	{
+		ret["until"] = "";
+		if (json_object_object_get_ex(j_dhw, "dhwId", &j_res))
+			ret["dhwId"] = json_object_get_string(j_res);
+		if ( (json_object_object_get_ex(tcs->status, "temperatureStatus", &j_tmp)) && (json_object_object_get_ex( j_tmp, "temperature", &j_res)) )
+			ret["temperature"] = json_object_get_string(j_res);
+		if ( json_object_object_get_ex(tcs->status, "stateStatus", &j_tmp))
+		{
+			if (json_object_object_get_ex(j_tmp, "state", &j_res))
+				ret["state"] = json_object_get_string(j_res);
+			if (json_object_object_get_ex(j_tmp, "mode", &j_res))
+				ret["mode"] = json_object_get_string(j_res);
+			if ( (ret["mode"] == "TemporaryOverride") && (json_object_object_get_ex(j_tmp, "until", &j_res)) )
+				ret["until"] = json_object_get_string(j_res);
+		}
+	}
+	return ret;
+}
+
+
+map<std::string, std::string> evo_get_zone_data(evo_temperatureControlSystem* tcs, int zoneindex)
+{
+	map<std::string, std::string> ret;
+
+	json_object_object_foreach(tcs->zones[zoneindex].status, key, val)
 	{
 		if ( (strcmp(key, "zoneId") == 0) || (strcmp(key, "name") == 0) )
 		{
@@ -241,34 +281,12 @@ std::string utc_to_local(std::string utc_time)
 */
 
 
-
-int main(int argc, char** argv)
+// Get Evohome hardware ID from Domoticz
+int get_evohome_hardwareId(DomoticzClient dclient)
 {
-// get current time
-	now = time(0);
-
-	check_lock_status();
-
-	// set defaults
-	evoconfig["hwname"] = "evohome";
-	configfile = CONF_FILE;
-	tzoffset = -1;
-
-
-	parse_args(argc, argv);
-
-	if ( ! read_evoconfig() )
-		exit_error(ERROR+"can't read config file");
-		
-
-	if (verbose)
-		cout << "connect to Domoticz server\n";
-	DomoticzClient dclient = DomoticzClient(get_domoticz_host(evoconfig["url"], evoconfig["port"]));
-
 	int hwid = dclient.get_hwid(HARDWARE_TYPE, evoconfig["hwname"]);
 	if (verbose)
 		cout << "got ID '" << hwid << "' for Evohome hardware with name '" << evoconfig["hwname"] << "'\n";
-
 	if (createdev)
 	{
 		if (verbose)
@@ -281,9 +299,14 @@ int main(int argc, char** argv)
 
 	if (hwid == -1)
 		exit_error(ERROR+"evohome hardware not found");
+	return hwid;
+}
 
+
+// get Evohome devices from Domoticz
+void get_evohome_devices(DomoticzClient dclient, int hwid)
+{
 	dclient.get_devices(hwid);
-
 	if (createdev)
 	{
 		int controllers = 0;
@@ -300,7 +323,6 @@ int main(int argc, char** argv)
 			else
 				cout << "WARNING: got device with unknown SubType '" << it->second.SubType << "'\n";
 		}
-
 		if (controllers == 0)
 		{
 			if (verbose)
@@ -324,21 +346,138 @@ int main(int argc, char** argv)
 		if ( (controllers == 0) || (dhws == 0) || (zones < 12) )
 			dclient.get_devices(hwid);
 	}
-	
+}
 
+
+void update_system(DomoticzClient dclient, map<std::string,std::string> systemdata)
+{
+	if (verbose)
+		cout << " - change Evohome system status to '" << systemdata["systemMode"] << "'\n";
+	dclient.update_system_mode(dclient.devices[systemdata["systemId"]].idx, systemdata["systemMode"]);
+	if (updatedev)
+	{
+		stringstream sms;
+		sms << evoconfig["srt"] << SETMODE_SCRIPT;
+		if (verbose)
+			cout << " - change Evohome system name to '" << systemdata["modelType"] << "'\n - change setmode script path to '" << sms.str() << "'\n";
+		if (dclient.devices.find(systemdata["systemId"]) == dclient.devices.end())
+		dclient.update_system_dev(dclient.devices[systemdata["systemId"]].idx, systemdata["systemId"], systemdata["modelType"], sms.str());
+	}
+}
+
+
+void update_dhw(DomoticzClient dclient, map<std::string,std::string> dhwdata)
+{
+	std::string idx;
+	if ( updatedev && (dclient.devices.find(dhwdata["dhwId"]) == dclient.devices.end()) )
+	{
+		int newzone = 0;
+		std::string s_newzone = int_to_string(newzone);
+		while ( (dclient.devices.find(s_newzone) != dclient.devices.end()) && (dclient.devices[s_newzone].SubType != "domesticHotWater") )
+		{
+			newzone++;
+			s_newzone = int_to_string(newzone);
+		}
+		if (dclient.devices.find(int_to_string(newzone)) == dclient.devices.end())
+			cerr << "WARNING: can't register new Hot Water device because you have no free zones available for this hardware in Domoticz\n";
+		else
+			idx = dclient.devices[s_newzone].idx;
+		newzone++;
+	}
+	else
+		idx = dclient.devices[dhwdata["dhwId"]].idx;
+	if (verbose)
+		cout << " - change status of Hot Water device: temperature = " << dhwdata["temperature"] << ", state = " << dhwdata["state"] << ", mode = " << dhwdata["mode"] << ", until = " << dhwdata["until"] << endl;
+	dclient.update_zone_status(idx, dhwdata["temperature"], dhwdata["state"], dhwdata["mode"], dhwdata["until"]);
+	if (updatedev)
+	{
+		stringstream sms;
+		sms << evoconfig["srt"] << SETDHW_SCRIPT;
+		if (verbose)
+			cout << " - change hotwater script path to '" << sms.str() << "'\n";
+		dclient.update_zone_dev(idx, dhwdata["dhwId"], "Hot Water", sms.str());
+	}
+}
+
+
+void update_zone(DomoticzClient dclient, map<std::string,std::string> zonedata)
+{
+	std::string idx;
+	if ( updatedev && (dclient.devices.find(zonedata["zoneId"]) == dclient.devices.end()) )
+	{
+		int newzone = 0;
+		std::string s_newzone = int_to_string(newzone);
+		while ( (dclient.devices.find(s_newzone) != dclient.devices.end()) && (dclient.devices[s_newzone].SubType != "Zone") )
+		{
+			newzone++;
+			s_newzone = int_to_string(newzone);
+		}
+		if (dclient.devices.find(int_to_string(newzone)) == dclient.devices.end())
+			cerr << "WARNING: can't register new Evohome zone because you have no free zones available for this hardware in Domoticz\n";
+		else
+			idx = dclient.devices[s_newzone].idx;
+		newzone++;
+	}
+	else
+		idx = dclient.devices[zonedata["zoneId"]].idx;
+	if (updatedev)
+	{
+		stringstream sms;
+		sms << evoconfig["srt"] << SETTEMP_SCRIPT;
+		if (verbose)
+			cout << " - set name of zone device " << idx << " to '" << zonedata["name"] << "'\n - change zone script path to '" << sms.str() << "'\n";
+		dclient.update_zone_dev(idx, zonedata["zoneId"], zonedata["name"], sms.str());
+	}
+	if (verbose)
+		cout << " - change status of zone " << zonedata["name"] << ": temperature = " << zonedata["temperature"] << ", setpoint = " << zonedata["targetTemperature"] << ", mode = " << zonedata["setpointMode"] << ", until = " << zonedata["until"] << endl;
+	dclient.update_zone_status(idx, zonedata["temperature"], zonedata["targetTemperature"], zonedata["setpointMode"], zonedata["until"]);
+}
+
+
+
+
+
+int main(int argc, char** argv)
+{
+	// get current time
+	now = time(0);
+
+	check_lock_status();
+
+	// set defaults
+	evoconfig["hwname"] = "evohome";
+	configfile = CONF_FILE;
+	tzoffset = -1;
+	parse_args(argc, argv);
+	if ( ! read_evoconfig() )
+		exit_error(ERROR+"can't read config file");
+
+	// connect to Domoticz server
+	if (verbose)
+		cout << "connect to Domoticz server\n";
+	DomoticzClient dclient = DomoticzClient(get_domoticz_host(evoconfig["url"], evoconfig["port"]));
+
+	// Get Evohome hardware ID from Domoticz
+	int hwid = get_evohome_hardwareId(dclient);
+
+	// get Evohome devices from Domoticz
+	get_evohome_devices(dclient, hwid);
+
+
+	// connect to Evohome server
 	if (verbose)
 		cout << "connect to Evohome server\n";
 	EvohomeClient eclient = EvohomeClient(evoconfig["usr"],evoconfig["pw"]);
 
+	// get Evohome installation info
 	if (verbose)
 		cout << "retrieve Evohome installation info\n";
 	eclient.full_installation();
 
-
-	// set Evohome heating system
+	// get Evohome heating system
 	evo_temperatureControlSystem* tcs = NULL;
-
-	if ( evoconfig.find("systemId") != evoconfig.end() ) {
+	if ( evoconfig.find("systemId") != evoconfig.end() )
+	{
 		if (verbose)
 			cout << "using systemId from " << CONF_FILE << endl;
  		tcs = eclient.get_temperatureControlSystem_by_ID(evoconfig["systemId"]);
@@ -349,18 +488,20 @@ int main(int argc, char** argv)
 		tcs = &eclient.locations[0].gateways[0].temperatureControlSystems[0];
 	else
 		select_temperatureControlSystem(eclient);
-
 	if (tcs == NULL)
 		exit_error(ERROR+"multiple Evohome systems found - don't know which one to use for status");
 
+
+	// get status for Evohome heating system
 	if (verbose)
-		cout << "retrieve Evohome status\n";
+		cout << "retrieve status of Evohome heating system\n";
 	if ( !	eclient.get_status(tcs->locationId) )
 		exit_error(ERROR+"failed to retrieve status");
 
-/* retrieving schedules is painfully slow as we can only fetch them one zone at a time.
- * luckily schedules do not change very often, so we can use a local cache
- */
+
+	/* retrieving schedules is painfully slow as we can only fetch them one zone at a time.
+	 * luckily schedules do not change very often, so we can use a local cache
+	 */
 	if ( reloadcache || ( ! eclient.read_schedules_from_file(SCHEDULE_CACHE) ) )
 	{
 		if (verbose)
@@ -369,137 +510,40 @@ int main(int argc, char** argv)
 			exit_error(ERROR+"failed to open schedule cache file '"+SCHEDULE_CACHE+"'");
 		eclient.read_schedules_from_file(SCHEDULE_CACHE);
 	}
-	if (verbose) {
-		cout << "read schedules from cache\n";
-		cout << "start write of Evohome data to Domoticz:\n";
-	}
-	// Update system status
-	std::string systemId = eclient.json_get_val(tcs->installationInfo, "systemId");
 	if (verbose)
-		cout << " - change Evohome system status to '" << eclient.json_get_val(tcs->status, "systemModeStatus", "mode") << "'\n";
-	dclient.update_system_mode(dclient.devices[systemId].idx, eclient.json_get_val(tcs->status, "systemModeStatus", "mode"));
-	if (updatedev)
-	{
-		stringstream sms;
-		sms << evoconfig["srt"] << SETMODE_SCRIPT;
-		if (verbose)
-		{
-			cout << " - change Evohome system name to '" << eclient.json_get_val(tcs->installationInfo, "modelType") << "'\n";
-			cout << " - change setmode script path to '" << sms.str() << "'\n";
-		}
-		if (dclient.devices.find(systemId) == dclient.devices.end())
+		cout << "read schedules from cache\n";
 
 
-		dclient.update_system_dev(dclient.devices[systemId].idx, systemId, eclient.json_get_val(tcs->installationInfo, "modelType"), sms.str());
-	}
+	// Update system status
+	if (verbose)
+		cout << "start write of Evohome data to Domoticz:\n";
+	map<std::string, std::string> systemdata = evo_get_system_data(tcs);
+	update_system(dclient, systemdata);
 
 
-	/* Update hot water status
-	 * GB3: I hope I got this right - I have no way of checking this because my installation does not have such a device
-	 */
+	// Update hot water status
 	if (eclient.has_dhw(tcs))
 	{
-		json_object *j_dhw;
-		json_object_object_get_ex(tcs->status, "dhw", &j_dhw);
-
-		std::string dhw_until;
-		std::string dhwId = eclient.json_get_val(j_dhw, "dhwId");
-		std::string dhw_temperature = eclient.json_get_val(j_dhw, "temperatureStatus", "temperature");
-		std::string dhw_state = eclient.json_get_val(j_dhw, "stateStatus", "state");
-		std::string dhw_zonemode = eclient.json_get_val(j_dhw, "stateStatus", "mode");
-		if (dhw_zonemode == "TemporaryOverride")
-			dhw_until = eclient.json_get_val(j_dhw, "stateStatus", "until");
-		else
-			dhw_until = local_to_utc(eclient.get_next_switchpoint(tcs, atoi(dhwId.c_str())));
-
-
-		std::string idx;
-		if (dclient.devices.find(dhwId) == dclient.devices.end())
-		{
-			int newzone = 0;
-			std::string s_newzone = int_to_string(newzone);
-			while ( (dclient.devices.find(s_newzone) != dclient.devices.end()) && (dclient.devices[s_newzone].SubType != "domesticHotWater") )
-			{
-				newzone++;
-				s_newzone = int_to_string(newzone);
-			}
-			if (dclient.devices.find(int_to_string(newzone)) == dclient.devices.end())
-				cerr << "WARNING: can't register new Hot Water device because you have no free zones available for this hardware in Domoticz\n";
-			else
-				idx = dclient.devices[s_newzone].idx;
-			newzone++;
-		}
-		else
-			idx = dclient.devices[dhwId].idx;
-
-
-		if (verbose)
-		{
-			cout << " - change status of Hot Water device: temperature = " << dhw_temperature << ", state = " << dhw_state;
-			cout << ", mode = " << dhw_zonemode << ", until = " << dhw_until << endl;
-		}
-		dclient.update_zone_status(idx, dhw_temperature, dhw_state, dhw_zonemode, dhw_until);
-
-		if (updatedev)
-		{
-			stringstream sms;
-			sms << evoconfig["srt"] << SETDHW_SCRIPT;
-			if (verbose)
-			{
-				cout << " - change hotwater script path to '" << sms.str() << "'\n";
-			}
-			dclient.update_zone_dev(idx, dhwId, "Hot Water", sms.str());
-		}
+		map<std::string, std::string> dhwdata = evo_get_dhw_data(tcs);
+		if (dhwdata["until"] == "")
+			dhwdata["until"] = local_to_utc(eclient.get_next_switchpoint(tcs, atoi(dhwdata["dhwId"].c_str())));
+		update_dhw(dclient, dhwdata);
 	}
-
 
 
 	// Update zones
 	for (std::map<int, evo_zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
 	{
-		std::map<std::string,std::string> zone = evo_get_zone_data(it->second);
-		if (zone["until"].length() == 0)
-			zone["until"] = local_to_utc(eclient.get_next_switchpoint(tcs, it->first));
-		std::string idx;
-		if (dclient.devices.find(zone["zoneId"]) == dclient.devices.end())
-		{
-			int newzone = 0;
-			std::string s_newzone = int_to_string(newzone);
-			while ( (dclient.devices.find(s_newzone) != dclient.devices.end()) && (dclient.devices[s_newzone].SubType != "Zone") )
-			{
-				newzone++;
-				s_newzone = int_to_string(newzone);
-			}
-			if (dclient.devices.find(int_to_string(newzone)) == dclient.devices.end())
-				cerr << "WARNING: can't register new Evohome zone because you have no free zones available for this hardware in Domoticz\n";
-			else
-				idx = dclient.devices[s_newzone].idx;
-			newzone++;
-		}
-		else
-			idx = dclient.devices[zone["zoneId"]].idx;
-
-		if (updatedev)
-		{
-			stringstream sms;
-			sms << evoconfig["srt"] << SETZONE_SCRIPT;
-			if (verbose)
-			{
-				cout << " - set name of zone device " << idx << " to '" << zone["name"] << "'\n";
-				cout << " - change zone script path to '" << sms.str() << "'\n";
-			}
-			dclient.update_zone_dev(idx, zone["zoneId"], zone["name"], sms.str());
-		}
-		if (verbose)
-		{
-			cout << " - change status of zone " << zone["name"] << ": temperature = " << zone["temperature"] << ", setpoint = ";
-			cout  << zone["targetTemperature"] << ", mode = " << zone["setpointMode"] << ", until = " << zone["until"] << endl;
-		}
-		dclient.update_zone_status(idx, zone["temperature"], zone["targetTemperature"], zone["setpointMode"], zone["until"]);
+		std::map<std::string, std::string> zonedata = evo_get_zone_data(tcs, it->first);
+		if (zonedata["until"].length() == 0)
+			zonedata["until"] = local_to_utc(eclient.get_next_switchpoint(tcs, it->first));
+		update_zone(dclient, zonedata);
 	}
 
 	if (verbose)
 		cout << "Done!\n";
+
+	// cleanup
 	eclient.cleanup();
 	dclient.cleanup();
 

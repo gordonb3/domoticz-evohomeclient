@@ -237,6 +237,7 @@ bool DomoticzClient::get_devices(std::string hwid)
 		devices[evohome_id].idx = _json_get_val(j_dev, "idx");
 		devices[evohome_id].SubType = _json_get_val(j_dev, "SubType");
 		devices[evohome_id].Name = _json_get_val(j_dev, "Name");
+		devices[evohome_id].Temp = _json_get_val(j_dev, "Temp");
 	}
 
 
@@ -254,6 +255,7 @@ bool DomoticzClient::get_devices(std::string hwid)
 		devices[evohome_id].idx = _json_get_val(j_dev, "idx");
 		devices[evohome_id].SubType = _json_get_val(j_dev, "SubType");
 		devices[evohome_id].Name = _json_get_val(j_dev, "Name");
+		devices[evohome_id].Temp = _json_get_val(j_dev, "Temp");
 	}
 	return true;
 }
