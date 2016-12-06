@@ -105,11 +105,11 @@ void usage(std::string mode)
 	}
 	if (mode == "short")
 	{
-		cout << "Usage: evo-update [-hikuv] [-c file] [-b|-r file]\n";
-		cout << "Type \"evo-update --help\" for more help\n";
+		cout << "Usage: " << MYNAME << " [-hikuv] [-c file] [-b|-r file]\n";
+		cout << "Type \"" << MYNAME << " --help\" for more help\n";
 		exit(0);
 	}
-	cout << "Usage: evo-update [OPTIONS]\n";
+	cout << "Usage: " << MYNAME << " [OPTIONS]\n";
 	cout << endl;
 	cout << "  -h, --help                display this help and exit\n";
 	cout << "  -i, --init                create Evohome devices in Domoticz\n";
