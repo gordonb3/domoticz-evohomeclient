@@ -282,7 +282,7 @@ std::string utc_to_local(std::string utc_time)
 
 
 // Get Evohome hardware ID from Domoticz
-int get_evohome_hardwareId(DomoticzClient dclient)
+int get_evohome_hardwareId(DomoticzClient &dclient)
 {
 	int hwid = dclient.get_hwid(HARDWARE_TYPE, evoconfig["hwname"]);
 	if (verbose)
@@ -304,7 +304,7 @@ int get_evohome_hardwareId(DomoticzClient dclient)
 
 
 // get Evohome devices from Domoticz
-void get_evohome_devices(DomoticzClient dclient, int hwid)
+void get_evohome_devices(DomoticzClient &dclient, int hwid)
 {
 	dclient.get_devices(hwid);
 	if (createdev)
@@ -349,7 +349,7 @@ void get_evohome_devices(DomoticzClient dclient, int hwid)
 }
 
 
-void update_system(DomoticzClient dclient, map<std::string,std::string> systemdata)
+void update_system(DomoticzClient &dclient, map<std::string,std::string> systemdata)
 {
 	if (verbose)
 		cout << " - change Evohome system status to '" << systemdata["systemMode"] << "'\n";
@@ -366,7 +366,7 @@ void update_system(DomoticzClient dclient, map<std::string,std::string> systemda
 }
 
 
-void update_dhw(DomoticzClient dclient, map<std::string,std::string> dhwdata)
+void update_dhw(DomoticzClient &dclient, map<std::string,std::string> dhwdata)
 {
 	std::string idx;
 	if ( updatedev && (dclient.devices.find(dhwdata["dhwId"]) == dclient.devices.end()) )
@@ -400,7 +400,7 @@ void update_dhw(DomoticzClient dclient, map<std::string,std::string> dhwdata)
 }
 
 
-void update_zone(DomoticzClient dclient, map<std::string,std::string> zonedata)
+void update_zone(DomoticzClient &dclient, map<std::string,std::string> zonedata)
 {
 	std::string idx;
 	if ( updatedev && (dclient.devices.find(zonedata["zoneId"]) == dclient.devices.end()) )
