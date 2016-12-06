@@ -2,10 +2,15 @@ CC      = g++
 CFLAGS  +=  -c -Wall
 LDFLAGS +=  -lcurl -ljson-c
 OBJ     = $(patsubst %.c,%.o,$(wildcard lib/*.c))
-DEPS    = $(wildcard demo/*.h) $(wildcard lib/*.h)
+DEPS    = $(wildcard src/*.h) $(wildcard lib/*.h) $(wildcard demo/*.h)
 
-all: evo-demo evo-update evo-schedule-backup evo-setmode evo-settemp
 
+all: evo-client
+
+demo: evo-demo evo-update evo-schedule-backup evo-setmode evo-settemp
+
+evo-client: src/evo-client.o lib/base64.o lib/domoticzclient.o lib/evohomeclient.o lib/webclient.o
+	$(CC) src/evo-client.o lib/base64.o lib/domoticzclient.o lib/evohomeclient.o lib/webclient.o $(LDFLAGS) -o evo-client
 
 evo-demo: $(OBJ) demo/evo-demo.o
 	$(CC) demo/evo-demo.o $(OBJ) $(LDFLAGS) -o evo-demo
@@ -28,5 +33,5 @@ evo-settemp: demo/evo-settemp.o lib/base64.o lib/domoticzclient.o lib/evohomecli
 distclean: clean
 
 clean:
-	rm -f $(OBJ) $(wildcard demo/*.o) evo-demo evo-update evo-schedule-backup evo-setmode evo-settemp
+	rm -f $(OBJ) $(wildcard src/*.o) $(wildcard demo/*.o) evo-demo evo-update evo-schedule-backup evo-setmode evo-settemp evo-client
 
