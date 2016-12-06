@@ -583,7 +583,7 @@ void update_system(DomoticzClient &dclient, map<std::string,std::string> systemd
 		sms << scriptroot << SETMODE_SCRIPT;
 		if (verbose)
 			cout << " - change Evohome system name to '" << systemdata["modelType"] << "'\n - change setmode script path to '" << sms.str() << "'\n";
-		if (dclient.devices.find(systemdata["systemId"]) == dclient.devices.end())
+		if (dclient.devices.find(systemdata["systemId"]) != dclient.devices.end())
 		dclient.update_system_dev(dclient.devices[systemdata["systemId"]].idx, systemdata["systemId"], systemdata["modelType"], sms.str());
 	}
 }
