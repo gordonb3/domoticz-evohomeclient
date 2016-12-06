@@ -115,6 +115,8 @@ class EvohomeClient
 	std::string get_next_switchpoint(evo_temperatureControlSystem* tcs, int zone);
 	std::string get_next_switchpoint(std::string zoneId);
 	std::string get_next_switchpoint(json_object *schedule);
+	std::string get_next_switchpoint_ex(json_object *schedule, std::string &current_temperature);
+
 
 
 	bool set_system_mode(std::string systemId, int mode, std::string date_until);

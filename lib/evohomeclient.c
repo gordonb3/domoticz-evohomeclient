@@ -502,6 +502,11 @@ std::string EvohomeClient::get_next_switchpoint(std::string zoneId)
 
 std::string EvohomeClient::get_next_switchpoint(json_object *schedule)
 {
+	std::string current_temperature;
+	return get_next_switchpoint_ex(schedule, current_temperature);
+}
+std::string EvohomeClient::get_next_switchpoint_ex(json_object *schedule, std::string &current_temperature)
+{
 	if (schedule == NULL)
 		return "";
 
@@ -511,7 +516,7 @@ std::string EvohomeClient::get_next_switchpoint(json_object *schedule)
 	int year = ltime.tm_year;
 	int month = ltime.tm_mon;
 	int day = ltime.tm_mday;
-	std::string stime;
+	std::string s_time;
 	json_object *j_week;
 	json_object_object_get_ex(schedule, "dailySchedules", &j_week);
 	int sdays = json_object_array_length(j_week);
@@ -530,7 +535,7 @@ std::string EvohomeClient::get_next_switchpoint(json_object *schedule)
 				i = sdays;
 		}
 
-		json_object *j_list, *j_sp, *j_tim;
+		json_object *j_list, *j_sp, *j_tim, *j_temp;
 		json_object_object_get_ex( j_day, "switchpoints", &j_list);
 
 		int l = json_object_array_length(j_list);
@@ -538,24 +543,30 @@ std::string EvohomeClient::get_next_switchpoint(json_object *schedule)
 		{
 			j_sp = json_object_array_get_idx(j_list, i);
 			json_object_object_get_ex(j_sp, "timeOfDay", &j_tim);
-			stime=json_object_get_string(j_tim);
+			s_time = json_object_get_string(j_tim);
 			ltime.tm_isdst = -1;
 			ltime.tm_year = year;
 			ltime.tm_mon = month;
 			ltime.tm_mday = day + d;
-			ltime.tm_hour = atoi(stime.substr(0, 2).c_str());
-			ltime.tm_min = atoi(stime.substr(3, 2).c_str());
-			ltime.tm_sec = atoi(stime.substr(6, 2).c_str());
+			ltime.tm_hour = atoi(s_time.substr(0, 2).c_str());
+			ltime.tm_min = atoi(s_time.substr(3, 2).c_str());
+			ltime.tm_sec = atoi(s_time.substr(6, 2).c_str());
 			time_t ntime = mktime(&ltime);
 			if (ntime > now)
 			{
 				i = l;
 				d = 7;
 			}
+			else
+			{
+				json_object_object_get_ex(j_sp, "temperature", &j_temp);
+				current_temperature = json_object_get_string(j_temp);
+			}
 		}
 	}
 	char rdata[30];
-	sprintf(rdata,"%04d-%02d-%02dT%sZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,stime.c_str());
+	sprintf(rdata,"%04d-%02d-%02dT%sZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,s_time.c_str());
+
 	return string(rdata);
 }
 
