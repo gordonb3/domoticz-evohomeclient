@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
+ *
+ * Json client for Evohome version 2 API
+ *
+ *
+ * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
+ */
+
 #include <malloc.h>
 #include <cstring>
 #include <ctime>
@@ -9,13 +18,6 @@
 #define EVOHOME_HOST "https://tccna.honeywell.com"
 
 using namespace std;
-
-
-// Lookup for translating numeric tm_wday to a full weekday string
-//std::string weekdays[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-
-// Lookup for evohome numeric state to a full string
-//std::string evo_modes[] = {"Auto", "HeatingOff", "AutoWithEco", "Away", "DayOff", "", "Custom"};
 
 
 /*

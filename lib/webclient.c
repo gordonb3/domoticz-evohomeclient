@@ -1,21 +1,21 @@
+/*
+ * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
+ *
+ * Helper to keep track of multiple Curl connections
+ *
+ *
+ * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
+ */
+
 #include <stdlib.h>
 #include <iostream>
 #include <sstream>
 #include <malloc.h>
 #include <cstring>
-
 #include "webclient.h"
-
 
 using namespace std;
 
-/************************************************************************
- *									*
- *	Keep track of multiple Curl connections				*
- *									*
- *	Original version 2016-11-25 by gordon@bosvangennip.nl		*
- *									*
- ************************************************************************/
 
 CURLcode res;
 std::string userAgent;

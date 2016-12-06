@@ -4,7 +4,7 @@
  * Json client for Evohome
  *
  *
- *
+ * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
  */
 
 #ifndef _EvohomeClient
@@ -93,7 +93,6 @@ class EvohomeClient
 	bool get_status(int location);
 	bool get_status(std::string locationId);
 
-
 	evo_location* get_location_by_ID(std::string locationId);
 	evo_gateway* get_gateway_by_ID(std::string gatewayId);
 	evo_temperatureControlSystem* get_temperatureControlSystem_by_ID(std::string systemId);
@@ -117,18 +116,14 @@ class EvohomeClient
 	std::string get_next_switchpoint(json_object *schedule);
 	std::string get_next_switchpoint_ex(json_object *schedule, std::string &current_temperature);
 
-
-
 	bool set_system_mode(std::string systemId, int mode, std::string date_until);
 	bool set_system_mode(std::string systemId, std::string mode, std::string date_until);
 	bool set_system_mode(std::string systemId, std::string mode);
-
 
 	std::string json_get_val(std::string s_json, std::string key);
 	std::string json_get_val(json_object *j_json, std::string key);
 	std::string json_get_val(std::string s_json, std::string key1, std::string key2);
 	std::string json_get_val(json_object *j_json, std::string key1, std::string key2);
-
 
 	bool set_temperature(std::string zoneId, std::string temperature, std::string time_until);
 	bool set_temperature(std::string zoneId, std::string temperature);
@@ -136,7 +131,6 @@ class EvohomeClient
 
 	bool set_dhw_mode(std::string dhwId, std::string mode, std::string time_until);
 	bool set_dhw_mode(std::string systemId, std::string mode);
-
 };
 
 #endif

@@ -1,10 +1,10 @@
 /*
  * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
  *
- * Demo app for connecting to Evohome and Domoticz
+ * Main app for interfacing with Evohome from Domoticz
  *
  *
- *
+ * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
  */
 
 #include <iostream>
@@ -584,7 +584,7 @@ void update_system(DomoticzClient &dclient, map<std::string,std::string> systemd
 		if (verbose)
 			cout << " - change Evohome system name to '" << systemdata["modelType"] << "'\n - change setmode script path to '" << sms.str() << "'\n";
 		if (dclient.devices.find(systemdata["systemId"]) != dclient.devices.end())
-		dclient.update_system_dev(dclient.devices[systemdata["systemId"]].idx, systemdata["systemId"], systemdata["modelType"], sms.str());
+			dclient.update_system_dev(dclient.devices[systemdata["systemId"]].idx, systemdata["systemId"], systemdata["modelType"], sms.str());
 	}
 }
 

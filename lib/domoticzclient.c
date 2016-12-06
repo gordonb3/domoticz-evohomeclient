@@ -4,7 +4,7 @@
  * Json client for Domoticz
  *
  *
- *
+ * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
  */
 
 #include <malloc.h>

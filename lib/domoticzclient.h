@@ -4,7 +4,7 @@
  * Json client for Domoticz
  *
  *
- *
+ * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
  */
 
 #ifndef _DomoticzClient
@@ -44,7 +44,6 @@ class DomoticzClient
 	public:
 	std::map<std::string,domoticz_device> devices;
 
-
 	DomoticzClient(std::string host);
 	void cleanup();
 
@@ -69,8 +68,6 @@ class DomoticzClient
 
 	void update_zone_dev(std::string idx, std::string dhwId, std::string dev_name, std::string setdhw_script);
 	void update_zone_status(std::string idx, std::string temperature, std::string state, std::string zonemode, std::string until);
-
-
-
 };
+
 #endif

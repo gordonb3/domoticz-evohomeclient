@@ -1,5 +1,5 @@
 CC      = g++
-CFLAGS  +=  -c -Wall
+CFLAGS  +=  -c -Wall $(EXTRAFLAGS)
 LDFLAGS +=  -lcurl -ljson-c
 OBJ     = $(patsubst %.c,%.o,$(wildcard lib/*.c))
 DEPS    = $(wildcard src/*.h) $(wildcard lib/*.h) $(wildcard demo/*.h)
