@@ -12,7 +12,6 @@
 #include <sstream>
 #include <map>
 #include <cstring>
-#include <time.h>
 
 
 #ifndef CONF_FILE
@@ -109,30 +108,35 @@ int main(int argc, char** argv)
 		cout << "connect to Evohome server\n";
 	EvohomeClient eclient = EvohomeClient(evoconfig["usr"],evoconfig["pw"]);
 
-	if (verbose)
-		cout << "retrieve Evohome installation info\n";
-	eclient.full_installation();
 
-	// set Evohome heating system
-	evo_temperatureControlSystem* tcs = NULL;
-
+	std::string systemId;
 	if ( evoconfig.find("systemId") != evoconfig.end() ) {
 		if (verbose)
 			cout << "using systemId from " << CONF_FILE << endl;
- 		tcs = eclient.get_temperatureControlSystem_by_ID(evoconfig["systemId"]);
-		if (tcs == NULL)
-			exit_error(ERROR+"the Evohome systemId specified in "+CONF_FILE+" cannot be found");
+		systemId = evoconfig["systemId"];
 	}
-	else if (eclient.is_single_heating_system())
-		tcs = &eclient.locations[0].gateways[0].temperatureControlSystems[0];
 	else
-		select_temperatureControlSystem(eclient);
+	{
+		if (verbose)
+			cout << "retrieve Evohome installation info\n";
+		eclient.full_installation();
 
-	if (tcs == NULL)
-		exit_error(ERROR+"multiple Evohome systems found - don't know which one to use");
+		// set Evohome heating system
+		evo_temperatureControlSystem* tcs = NULL;
+
+		if (eclient.is_single_heating_system())
+			tcs = &eclient.locations[0].gateways[0].temperatureControlSystems[0];
+		else
+			select_temperatureControlSystem(eclient);
+
+		if (tcs == NULL)
+			exit_error(ERROR+"multiple Evohome systems found - don't know which one to use");
+
+		systemId = tcs->systemId;
+	}
 
 
-	if ( ! eclient.set_system_mode(tcs->systemId,mode) )
+	if ( ! eclient.set_system_mode(systemId,mode) )
 		exit_error(ERROR+"failed to set system mode to "+mode);
 	
 	if (verbose)

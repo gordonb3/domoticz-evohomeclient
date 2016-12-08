@@ -221,12 +221,13 @@ void update_zone(DomoticzClient dclient, map<std::string,std::string> zonedata)
 
 int main(int argc, char** argv)
 {
-// get current time
+	// get current time
 	now = time(0);
 
 	// set defaults
 	evoconfig["hwname"] = "evohome";
 	configfile = CONF_FILE;
+
 
 	if ( ! read_evoconfig() )
 		exit_error(ERROR+"can't read config file");
@@ -240,13 +241,71 @@ int main(int argc, char** argv)
 		if ( ! eclient.cancel_temperature_override(string(argv[1])) )
 			exit_error(ERROR+"failed to cancel override for zone "+argv[1]);
 
-		// ToDo: let Domoticz display the target temperature from schedule
+		eclient.full_installation();
+
+		// get Evohome heating system
+		evo_temperatureControlSystem* tcs = NULL;
+		if ( evoconfig.find("systemId") != evoconfig.end() )
+		{
+			if (verbose)
+				cout << "using systemId from " << CONF_FILE << endl;
+	 		tcs = eclient.get_temperatureControlSystem_by_ID(evoconfig["systemId"]);
+			if (tcs == NULL)
+				exit_error(ERROR+"the Evohome systemId specified in "+CONF_FILE+" cannot be found");
+		}
+		else if (eclient.is_single_heating_system())
+			tcs = &eclient.locations[0].gateways[0].temperatureControlSystems[0];
+		else
+			select_temperatureControlSystem(eclient);
+		if (tcs == NULL)
+			exit_error(ERROR+"multiple Evohome systems found - don't know which one to use for status");
+
+		// get status for Evohome heating system
+		if (verbose)
+			cout << "retrieve status of Evohome heating system\n";
+		if ( !	eclient.get_status(tcs->locationId) )
+			exit_error(ERROR+"failed to retrieve status");
+
+		if ( reloadcache || ( ! eclient.read_schedules_from_file(SCHEDULE_CACHE) ) )
+		{
+			if (verbose)
+				cout << "reloading schedules cache\n";
+			if ( ! eclient.schedules_backup(SCHEDULE_CACHE) )
+				exit_error(ERROR+"failed to open schedule cache file '"+SCHEDULE_CACHE+"'");
+			eclient.read_schedules_from_file(SCHEDULE_CACHE);
+		}
+		if (verbose)
+			cout << "read schedules from cache\n";
+
+		DomoticzClient dclient = DomoticzClient(get_domoticz_host(evoconfig["url"], evoconfig["port"]));
+
+		int hwid = dclient.get_hwid(HARDWARE_TYPE, evoconfig["hwname"]);
+		if (verbose)
+			cout << "got ID '" << hwid << "' for Evohome hardware with name '" << evoconfig["hwname"] << "'\n";
+
+		if (hwid == -1)
+			exit_error(ERROR+"evohome hardware not found");
+
+		dclient.get_devices(hwid);
+
+		// update zone
+		for (std::map<int, evo_zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
+		{
+			if (string(argv[1]) == it->second.zoneId) {
+				std::map<std::string, std::string> zonedata = evo_get_zone_data(tcs, it->first);
+				zonedata["until"] = eclient.get_next_switchpoint_ex(tcs->zones[it->first].schedule, zonedata["temperature"]);
+				update_zone(dclient, zonedata);
+			}
+		}
+		dclient.cleanup();
+		eclient.cleanup();
+		exit(0);
 	}
 
 	std::string s_until = "";
 	if (argc == 5)
 	{
-		// 'until' is set
+		// until set
 		std::string utc_time = string(argv[4]);
 		if (utc_time.length() < 19)
 			exit_error(ERROR+"bad timestamp value on command line");
@@ -268,9 +327,11 @@ int main(int argc, char** argv)
 
 	eclient.set_temperature(string(argv[1]), string(argv[3]), s_until);
 
+
 	if (s_until != "")
 	{
 		// correct UTC until time in Domoticz
+
 		if (verbose)
 			cout << "connect to Domoticz server\n";
 		DomoticzClient dclient = DomoticzClient(get_domoticz_host(evoconfig["url"], evoconfig["port"]));
