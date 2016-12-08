@@ -464,7 +464,7 @@ std::string local_to_utc(std::string utc_time)
 		// calculate timezone offset once
 		struct tm utime;
 		gmtime_r(&now, &utime);
-		tzoffset = difftime(mktime(&utime), now);
+		tzoffset = (int)difftime(mktime(&utime), now);
 	}
 	struct tm ltime;
 	ltime.tm_isdst = -1;
@@ -482,7 +482,6 @@ std::string local_to_utc(std::string utc_time)
 }
 
 
-
 std::string utc_to_local(std::string utc_time)
 {
 	if (tzoffset == -1)
@@ -490,7 +489,7 @@ std::string utc_to_local(std::string utc_time)
 		// calculate timezone offset once
 		struct tm utime;
 		gmtime_r(&now, &utime);
-		tzoffset = difftime(mktime(&utime), now);
+		tzoffset = (int)difftime(mktime(&utime), now);
 	}
 	struct tm ltime;
 	ltime.tm_isdst = -1;
@@ -1004,6 +1003,27 @@ void cmd_set_dhw_state()
 }
 
 
+std::string getpath(std::string filename)
+{
+#ifdef _WIN32
+	stringstream ss;
+	unsigned int i;
+	for (i = 0; i < filename.length(); i++)
+	{
+		if (filename[i] == '\\')
+			ss << '/';
+		else
+			ss << filename[i];
+	}
+	filename = ss.str();
+#endif
+	std::size_t pos = filename.rfind('/');
+	if (pos == std::string::npos)
+		return "";
+	return filename.substr(0, pos+1);
+}
+
+
 int main(int argc, char** argv)
 {
 	init_globals();
@@ -1014,8 +1034,15 @@ int main(int argc, char** argv)
 	else
 		touch_lockfile();
 
-	if ( ! read_evoconfig() )
-		exit_error(s_ERROR+"can't read config file");
+	if ( ( ! read_evoconfig() ) && (getpath(configfile) == "") )
+	{
+		// try to find evoconfig in the application path
+		stringstream ss;
+		ss << getpath(argv[0]) << configfile;
+		configfile = ss.str();
+		if ( ! read_evoconfig() )
+			exit_error(s_ERROR+"can't read config file");
+	}
 
 	if (command == "update")
 	{
