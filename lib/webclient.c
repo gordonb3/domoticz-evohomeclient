@@ -53,7 +53,11 @@ void web_connection_init(std::string connection)
 	CURL *conn;
 	if (curl_connections.size() == 0)
 	{
+#ifdef _WIN32
+		curl_global_init(CURL_GLOBAL_WIN32);
+#else
 		curl_global_init(CURL_GLOBAL_SSL);
+#endif
 	}
 	conn = curl_easy_init();
 	if ( ! conn )

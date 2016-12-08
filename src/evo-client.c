@@ -62,12 +62,17 @@
 #define ZONE_SUBTYPE_ID "70"
 
 
+#ifdef _WIN32
+#define localtime_r(timep, result) localtime_s(result, timep)
+#define gmtime_r(timep, result) gmtime_s(result, timep)
+#endif
+
 using namespace std;
 
 time_t now;
 int tzoffset;
 bool createdev, updatedev, reloadcache, dobackup, verbose;
-std::string command, backupfile, configfile, scriptroot, ERROR, WARN;
+std::string command, backupfile, configfile, scriptroot, s_ERROR, s_WARN;
 std::map<std::string,std::string> evoconfig;
 map<int,std::string> parameters;
 
@@ -86,8 +91,8 @@ void init_globals()
 	verbose = false;
 	command = "update";
 
-	ERROR = "ERROR: ";
-	WARN = "WARNING: ";
+	s_ERROR = "ERROR: ";
+	s_WARN = "WARNING: ";
 }
 
 
@@ -231,7 +236,7 @@ evo_temperatureControlSystem* select_temperatureControlSystem(EvohomeClient &ecl
 		int l = eclient.locations.size();
 		location = atoi(evoconfig["location"].c_str());
 		if (location > l)
-			exit_error(ERROR+"the Evohome location specified in "+configfile+" cannot be found");
+			exit_error(s_ERROR+"the Evohome location specified in "+configfile+" cannot be found");
 		is_unique_heating_system = ( (eclient.locations[location].gateways.size() == 1) &&
 						(eclient.locations[location].gateways[0].temperatureControlSystems.size() == 1)
 						);
@@ -242,7 +247,7 @@ evo_temperatureControlSystem* select_temperatureControlSystem(EvohomeClient &ecl
 		int l = eclient.locations[location].gateways.size();
 		gateway = atoi(evoconfig["gateway"].c_str());
 		if (gateway > l)
-			exit_error(ERROR+"the Evohome gateway specified in "+configfile+" cannot be found");
+			exit_error(s_ERROR+"the Evohome gateway specified in "+configfile+" cannot be found");
 		is_unique_heating_system = (eclient.locations[location].gateways[gateway].temperatureControlSystems.size() == 1);
 	}
 	if ( evoconfig.find("controlsystem") != evoconfig.end() ) {
@@ -251,7 +256,7 @@ evo_temperatureControlSystem* select_temperatureControlSystem(EvohomeClient &ecl
 		int l = eclient.locations[location].gateways[gateway].temperatureControlSystems.size();
 		temperatureControlSystem = atoi(evoconfig["controlsystem"].c_str());
 		if (temperatureControlSystem > l)
-			exit_error(ERROR+"the Evohome temperature controlsystem specified in "+configfile+" cannot be found");
+			exit_error(s_ERROR+"the Evohome temperature controlsystem specified in "+configfile+" cannot be found");
 		is_unique_heating_system = true;
 	}
 
@@ -521,7 +526,7 @@ int get_evohome_hardwareId(DomoticzClient &dclient)
 	}
 
 	if (hwid == -1)
-		exit_error(ERROR+"evohome hardware not found");
+		exit_error(s_ERROR+"evohome hardware not found");
 	return hwid;
 }
 
@@ -667,7 +672,7 @@ void read_schedules(EvohomeClient &eclient)
 		if (verbose)
 			cout << "reloading schedules cache\n";
 		if ( ! eclient.schedules_backup(SCHEDULE_CACHE) )
-			exit_error(ERROR+"failed to open schedule cache file '"+SCHEDULE_CACHE+"'");
+			exit_error(s_ERROR+"failed to open schedule cache file '"+SCHEDULE_CACHE+"'");
 		eclient.read_schedules_from_file(SCHEDULE_CACHE);
 	}
 	if (verbose)
@@ -706,21 +711,21 @@ void cmd_update()
 			cout << "using systemId from " << configfile << endl;
  		tcs = eclient.get_temperatureControlSystem_by_ID(evoconfig["systemId"]);
 		if (tcs == NULL)
-			exit_error(ERROR+"the Evohome systemId specified in "+configfile+" cannot be found");
+			exit_error(s_ERROR+"the Evohome systemId specified in "+configfile+" cannot be found");
 	}
 	else if (eclient.is_single_heating_system())
 		tcs = &eclient.locations[0].gateways[0].temperatureControlSystems[0];
 	else
 		select_temperatureControlSystem(eclient);
 	if (tcs == NULL)
-		exit_error(ERROR+"multiple Evohome systems found - don't know which one to use for status");
+		exit_error(s_ERROR+"multiple Evohome systems found - don't know which one to use for status");
 
 
 	// get status for Evohome heating system
 	if (verbose)
 		cout << "retrieve status of Evohome heating system\n";
 	if ( !	eclient.get_status(tcs->locationId) )
-		exit_error(ERROR+"failed to retrieve status");
+		exit_error(s_ERROR+"failed to retrieve status");
 
 	// get schedules
 	read_schedules(eclient);
@@ -784,14 +789,14 @@ void cmd_backup_and_restore_schedules()
 	{
 		cout << "Start backup of Evohome schedules\n";
 		if ( ! eclient.schedules_backup(backupfile) )
-			exit_error(ERROR+"failed to open backup file '"+backupfile+"'");
+			exit_error(s_ERROR+"failed to open backup file '"+backupfile+"'");
 		cout << "Done!\n";
 	}
 	else		// restore
 	{
 		cout << "Start restore of Evohome schedules\n";
 		if ( ! eclient.schedules_restore(backupfile) )
-			exit_error(ERROR+"failed to open backup file '"+backupfile+"'");
+			exit_error(s_ERROR+"failed to open backup file '"+backupfile+"'");
 		cout << "Done!\n";
 	}
 
@@ -802,7 +807,7 @@ void cmd_backup_and_restore_schedules()
 std::string format_time(std::string utc_time)
 {
 	if (utc_time.length() < 19)
-		exit_error(ERROR+"bad timestamp value on command line");
+		exit_error(s_ERROR+"bad timestamp value on command line");
 	struct tm ltime;
 	ltime.tm_isdst = -1;
 	ltime.tm_year = atoi(utc_time.substr(0, 4).c_str()) - 1900;
@@ -813,7 +818,7 @@ std::string format_time(std::string utc_time)
 	ltime.tm_sec = atoi(utc_time.substr(17, 2).c_str());
 	time_t ntime = mktime(&ltime);
 	if ( ntime == -1)
-		exit_error(ERROR+"bad timestamp value on command line");
+		exit_error(s_ERROR+"bad timestamp value on command line");
 	char c_until[40];
 	sprintf(c_until, "%04d-%02d-%02dT%02d:%02d:%02dZ", ltime.tm_year+1900, ltime.tm_mon+1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec);
 	return string(c_until);
@@ -827,7 +832,7 @@ void cancel_temperature_override()
 	EvohomeClient eclient = EvohomeClient(evoconfig["usr"],evoconfig["pw"]);
 
 	if ( ! eclient.cancel_temperature_override(parameters[1]) )
-		exit_error(ERROR+"failed to cancel override for zone "+parameters[1]);
+		exit_error(s_ERROR+"failed to cancel override for zone "+parameters[1]);
 
 	// get Evohome installation info
 	if (verbose)
@@ -842,14 +847,14 @@ void cancel_temperature_override()
 			cout << "using systemId from " << configfile << endl;
  		tcs = eclient.get_temperatureControlSystem_by_ID(evoconfig["systemId"]);
 		if (tcs == NULL)
-			exit_error(ERROR+"the Evohome systemId specified in "+configfile+" cannot be found");
+			exit_error(s_ERROR+"the Evohome systemId specified in "+configfile+" cannot be found");
 	}
 	else if (eclient.is_single_heating_system())
 		tcs = &eclient.locations[0].gateways[0].temperatureControlSystems[0];
 	else
 		select_temperatureControlSystem(eclient);
 	if (tcs == NULL)
-		exit_error(ERROR+"multiple Evohome systems found - don't know which one to use for status");
+		exit_error(s_ERROR+"multiple Evohome systems found - don't know which one to use for status");
 
 	// get schedules
 	read_schedules(eclient);
@@ -919,7 +924,7 @@ void cmd_set_temperature()
 		if (verbose)
 			cout << "got ID '" << hwid << "' for Evohome hardware with name '" << evoconfig["hwname"] << "'\n";
 		if (hwid == -1)
-			exit_error(ERROR+"evohome hardware not found");
+			exit_error(s_ERROR+"evohome hardware not found");
 		dclient.get_devices(hwid);
 		std::string idx = dclient.devices[parameters[1]].idx;
 		std::string temperature = dclient.devices[parameters[1]].Temp;
@@ -965,11 +970,11 @@ void cmd_set_system_mode()
 		else
 			select_temperatureControlSystem(eclient);
 		if (tcs == NULL)
-			exit_error(ERROR+"multiple Evohome systems found - don't know which one to use");
+			exit_error(s_ERROR+"multiple Evohome systems found - don't know which one to use");
 		systemId = tcs->systemId;
 	}
 	if ( ! eclient.set_system_mode(systemId, mode, until) )
-		exit_error(ERROR+"failed to set system mode to "+mode);
+		exit_error(s_ERROR+"failed to set system mode to "+mode);
 	if (verbose)
 		cout << "updated system status\n";
 	eclient.cleanup();
@@ -1010,7 +1015,7 @@ int main(int argc, char** argv)
 		touch_lockfile();
 
 	if ( ! read_evoconfig() )
-		exit_error(ERROR+"can't read config file");
+		exit_error(s_ERROR+"can't read config file");
 
 	if (command == "update")
 	{

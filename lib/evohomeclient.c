@@ -16,6 +16,12 @@
 
 #define EVOHOME_HOST "https://tccna.honeywell.com"
 
+
+#ifdef _WIN32
+#define localtime_r(timep, result) localtime_s(result, timep)
+#define gmtime_r(timep, result) gmtime_s(result, timep)
+#endif
+
 using namespace std;
 
 const std::string weekdays[7] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
