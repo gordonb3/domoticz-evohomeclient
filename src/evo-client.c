@@ -39,7 +39,11 @@
 #endif
 
 #ifndef LOCKFILE
-#define LOCKFILE "/tmp/evo-noup.tmp"
+#ifdef _WIN32
+#define LOCKFILE "evo-lastup"
+#else
+#define LOCKFILE "/tmp/evo-lastup"
+#endif
 #endif
 
 #ifndef LOCKSECONDS
