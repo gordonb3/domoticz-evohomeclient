@@ -382,7 +382,7 @@ bool EvohomeClient::get_status(int location)
  ************************************************************************/
 
 
-evo_location* EvohomeClient::get_location_by_ID(std::string locationId)
+EvohomeClient::location* EvohomeClient::get_location_by_ID(std::string locationId)
 {
 	if (locations.size() == 0)
 		full_installation();
@@ -396,7 +396,7 @@ evo_location* EvohomeClient::get_location_by_ID(std::string locationId)
 }
 
 
-evo_gateway* EvohomeClient::get_gateway_by_ID(std::string gatewayId)
+EvohomeClient::gateway* EvohomeClient::get_gateway_by_ID(std::string gatewayId)
 {
 	if (locations.size() == 0)
 		full_installation();
@@ -413,7 +413,7 @@ evo_gateway* EvohomeClient::get_gateway_by_ID(std::string gatewayId)
 }
 
 
-evo_temperatureControlSystem* EvohomeClient::get_temperatureControlSystem_by_ID(std::string systemId)
+EvohomeClient::temperatureControlSystem* EvohomeClient::get_temperatureControlSystem_by_ID(std::string systemId)
 {
 	if (locations.size() == 0)
 		full_installation();
@@ -433,7 +433,7 @@ evo_temperatureControlSystem* EvohomeClient::get_temperatureControlSystem_by_ID(
 }
 
 
-evo_zone* EvohomeClient::get_zone_by_ID(std::string zoneId)
+EvohomeClient::zone* EvohomeClient::get_zone_by_ID(std::string zoneId)
 {
 	if (locations.size() == 0)
 		full_installation();
@@ -456,7 +456,7 @@ evo_zone* EvohomeClient::get_zone_by_ID(std::string zoneId)
 }
 
 
-evo_temperatureControlSystem* EvohomeClient::get_zone_temperatureControlSystem(evo_zone* zone)
+EvohomeClient::temperatureControlSystem* EvohomeClient::get_zone_temperatureControlSystem(EvohomeClient::zone* zone)
 {
 	unsigned int l,g,t,z;
 	for (l = 0; l < locations.size(); l++)
@@ -489,7 +489,7 @@ bool EvohomeClient::get_schedule(std::string zoneId)
 }
 
 
-std::string EvohomeClient::get_next_switchpoint(evo_temperatureControlSystem* tcs, int zone)
+std::string EvohomeClient::get_next_switchpoint(EvohomeClient::temperatureControlSystem* tcs, int zone)
 {
 	if (tcs->zones[zone].schedule == NULL)
 		get_schedule(tcs->zones[zone].zoneId);
@@ -711,22 +711,22 @@ bool EvohomeClient::read_schedules_from_file(std::string filename)
 	json_object *j_sched = json_tokener_parse(s_fcontent.c_str());
 	json_object_object_foreach(j_sched, locationId, j_loc)
 	{
-		evo_location* location = get_location_by_ID(locationId);
+		EvohomeClient::location* location = get_location_by_ID(locationId);
 		if (location == NULL)
 			continue;
 		json_object_object_foreach(j_loc, gatewayId, j_gw)
 		{
-			evo_gateway* gateway = get_gateway_by_ID(gatewayId);
+			EvohomeClient::gateway* gateway = get_gateway_by_ID(gatewayId);
 			if (gateway == NULL)
 				continue;
 			json_object_object_foreach(j_gw, systemId, j_tcs)
 			{
-				evo_temperatureControlSystem* tcs = get_temperatureControlSystem_by_ID(systemId);
+				EvohomeClient::temperatureControlSystem* tcs = get_temperatureControlSystem_by_ID(systemId);
 				if (tcs == NULL)
 					continue;
 				json_object_object_foreach(j_tcs, zoneId, j_zone)
 				{
-					evo_zone* zone = get_zone_by_ID(zoneId);
+					EvohomeClient::zone* zone = get_zone_by_ID(zoneId);
 					if (zone == NULL)
 						continue;
 					zone->schedule = j_zone;
@@ -995,10 +995,10 @@ bool EvohomeClient::cancel_temperature_override(std::string zoneId)
 
 bool EvohomeClient::has_dhw(int location, int gateway, int temperatureControlSystem)
 {
-	evo_temperatureControlSystem *tcs = &locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem];
+	EvohomeClient::temperatureControlSystem *tcs = &locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem];
 	return has_dhw(tcs);
 }
-bool EvohomeClient::has_dhw(evo_temperatureControlSystem *tcs)
+bool EvohomeClient::has_dhw(EvohomeClient::temperatureControlSystem *tcs)
 {
 	json_object *j_dhw;
 	return json_object_object_get_ex(tcs->status, "dhw", &j_dhw);

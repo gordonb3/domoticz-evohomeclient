@@ -162,7 +162,7 @@ std::string utc_to_local(std::string utc_time)
 }
 
 
-map<std::string, std::string> evo_get_zone_data(evo_temperatureControlSystem* tcs, int zoneindex)
+map<std::string, std::string> evo_get_zone_data(EvohomeClient::temperatureControlSystem* tcs, int zoneindex)
 {
 	map<std::string, std::string> ret;
 
@@ -244,7 +244,7 @@ int main(int argc, char** argv)
 		eclient.full_installation();
 
 		// get Evohome heating system
-		evo_temperatureControlSystem* tcs = NULL;
+		EvohomeClient::temperatureControlSystem* tcs = NULL;
 		if ( evoconfig.find("systemId") != evoconfig.end() )
 		{
 			if (verbose)
@@ -289,7 +289,7 @@ int main(int argc, char** argv)
 		dclient.get_devices(hwid);
 
 		// update zone
-		for (std::map<int, evo_zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
+		for (std::map<int, EvohomeClient::zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
 		{
 			if (string(argv[1]) == it->second.zoneId) {
 				std::map<std::string, std::string> zonedata = evo_get_zone_data(tcs, it->first);

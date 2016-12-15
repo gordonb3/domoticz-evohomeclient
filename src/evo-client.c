@@ -228,7 +228,7 @@ void check_lock_status()
 }
 
 
-evo_temperatureControlSystem* select_temperatureControlSystem(EvohomeClient &eclient)
+EvohomeClient::temperatureControlSystem* select_temperatureControlSystem(EvohomeClient &eclient)
 {
 	int location = 0;
 	int gateway = 0;
@@ -390,7 +390,7 @@ void parse_args(int argc, char** argv) {
 }
 
 
-map<std::string, std::string> evo_get_system_data(evo_temperatureControlSystem* tcs)
+map<std::string, std::string> evo_get_system_data(EvohomeClient::temperatureControlSystem* tcs)
 {
 	map<std::string, std::string> ret;
 	json_object *j_tmp, *j_res;
@@ -406,7 +406,7 @@ map<std::string, std::string> evo_get_system_data(evo_temperatureControlSystem* 
 }
 
 
-map<std::string, std::string> evo_get_dhw_data(evo_temperatureControlSystem* tcs)
+map<std::string, std::string> evo_get_dhw_data(EvohomeClient::temperatureControlSystem* tcs)
 {
 	map<std::string, std::string> ret;
 	json_object *j_dhw, *j_tmp, *j_res;
@@ -431,7 +431,7 @@ map<std::string, std::string> evo_get_dhw_data(evo_temperatureControlSystem* tcs
 }
 
 
-map<std::string, std::string> evo_get_zone_data(evo_temperatureControlSystem* tcs, int zoneindex)
+map<std::string, std::string> evo_get_zone_data(EvohomeClient::temperatureControlSystem* tcs, int zoneindex)
 {
 	map<std::string, std::string> ret;
 
@@ -707,7 +707,7 @@ void cmd_update()
 	eclient.full_installation();
 
 	// get Evohome heating system
-	evo_temperatureControlSystem* tcs = NULL;
+	EvohomeClient::temperatureControlSystem* tcs = NULL;
 	if ( evoconfig.find("systemId") != evoconfig.end() )
 	{
 		if (verbose)
@@ -759,7 +759,7 @@ void cmd_update()
 	}
 
 	// Update zones
-	for (std::map<int, evo_zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
+	for (std::map<int, EvohomeClient::zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
 	{
 		std::map<std::string, std::string> zonedata = evo_get_zone_data(tcs, it->first);
 		if (zonedata["until"].length() == 0)
@@ -843,7 +843,7 @@ void cancel_temperature_override()
 	eclient.full_installation();
 
 	// get Evohome heating system
-	evo_temperatureControlSystem* tcs = NULL;
+	EvohomeClient::temperatureControlSystem* tcs = NULL;
 	if ( evoconfig.find("systemId") != evoconfig.end() )
 	{
 		if (verbose)
@@ -873,7 +873,7 @@ void cancel_temperature_override()
 	get_evohome_devices(dclient, hwid);
 
 	// update zone
-	for (std::map<int, evo_zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
+	for (std::map<int, EvohomeClient::zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
 	{
 		if (parameters[1] == it->second.zoneId)
 		{
@@ -967,7 +967,7 @@ void cmd_set_system_mode()
 		eclient.full_installation();
 
 		// set Evohome heating system
-		evo_temperatureControlSystem* tcs = NULL;
+		EvohomeClient::temperatureControlSystem* tcs = NULL;
 		if (eclient.is_single_heating_system())
 			tcs = &eclient.locations[0].gateways[0].temperatureControlSystems[0];
 		else

@@ -117,7 +117,7 @@ void check_lock_status()
 }
 
 
-evo_temperatureControlSystem* select_temperatureControlSystem(EvohomeClient &eclient)
+EvohomeClient::temperatureControlSystem* select_temperatureControlSystem(EvohomeClient &eclient)
 {
 	int location = 0;
 	int gateway = 0;

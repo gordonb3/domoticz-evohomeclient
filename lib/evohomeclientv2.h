@@ -31,7 +31,14 @@ class EvohomeClientV2
 
 
 	public:
-	std::map<int,evo_location> locations;
+	struct location
+	{
+		std::string locationId;
+		json_object *installationInfo;
+		json_object *status;
+	};
+
+	std::map<int, location> locations;
 	std::map<std::string,std::string> sys_info;
 	std::map<std::string,std::string> schedule;
 

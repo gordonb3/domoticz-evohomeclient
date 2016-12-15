@@ -122,7 +122,7 @@ int main(int argc, char** argv)
 		eclient.full_installation();
 
 		// set Evohome heating system
-		evo_temperatureControlSystem* tcs = NULL;
+		EvohomeClient::temperatureControlSystem* tcs = NULL;
 
 		if (eclient.is_single_heating_system())
 			tcs = &eclient.locations[0].gateways[0].temperatureControlSystems[0];

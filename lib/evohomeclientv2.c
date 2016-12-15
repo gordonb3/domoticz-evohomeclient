@@ -132,9 +132,6 @@ void EvohomeClientV2::full_installation()
 	stringstream ss_jdata;
 	ss_jdata << "{\"locations\": " << send_receive_data(url.str(), evoheader) << "}";
 
-cout << ss_jdata.str() << endl;
-exit(0);
-
 	json_object *j_fi = json_tokener_parse(ss_jdata.str().c_str());
 	json_object *j_list;
 	json_object_object_get_ex(j_fi, "locations", &j_list);

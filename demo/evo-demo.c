@@ -1,17 +1,21 @@
+/*
+ * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
+ *
+ * Demo app for connecting to Evohome and Domoticz
+ *
+ *
+ *
+ */
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <map>
 #include <cstring>
 #include <time.h>
-
-#include "evo-demo.h"
 #include "../lib/domoticzclient.h"
 #include "../lib/evohomeclient.h"
-#include "../lib/webclient.h"
-
 #include "../lib/evohomeclientv2.h"
-
 
 #ifndef CONF_FILE
 #define CONF_FILE "evoconfig"
@@ -29,8 +33,6 @@
 #define LOCKFILE "/var/tmp/evo-noup.tmp"
 #endif
 
-
-
 #define HARDWARE_TYPE "40"
 
 #define CONTROLLER_SUBTYPE "Evohome"
@@ -43,18 +45,21 @@
 #define ZONE_SUBTYPE_ID "70"
 
 
-
 using namespace std;
 
 // Include common functions
 #include "evo-common.c"
 
 
+
+std::string backupfile;
+
 time_t now;
 int tzoffset=-1;
 
 bool createdev = false;
 bool updatedev = true;
+
 
 
 /*
@@ -76,7 +81,6 @@ void usage(std::string mode)
 {
 	cout << "Usage: " << mode << endl;
 }
-
 
 
 void parse_args(int argc, char** argv) {
@@ -117,7 +121,7 @@ void parse_args(int argc, char** argv) {
 /*
  * Create an associative array with the zone information we need
  */
-std::map<std::string,std::string> evo_get_zone_data(evo_zone zone)
+std::map<std::string,std::string> evo_get_zone_data(EvohomeClient::zone zone)
 {
 	map<std::string,std::string> ret;
 
@@ -139,6 +143,8 @@ std::map<std::string,std::string> evo_get_zone_data(evo_zone zone)
 }
 
 
+
+
 std::string int_to_string(int myint)
 {
 	stringstream ss;
@@ -152,6 +158,8 @@ int main(int argc, char** argv)
 // get current time
 	now = time(0);
 
+	backupfile = BACKUP_FILE;
+	configfile = CONF_FILE;
 	parse_args(argc, argv);
 
 // set defaults
@@ -160,7 +168,7 @@ int main(int argc, char** argv)
 // override defaults with settings from config file
 	read_evoconfig();
 
-// connect to Domoticz server
+cout << "connect to Domoticz server\n";
 	DomoticzClient dclient = DomoticzClient(get_domoticz_host(evoconfig["url"], evoconfig["port"]));
 
 	int hwid = dclient.get_hwid(HARDWARE_TYPE, evoconfig["hwname"]);
@@ -211,31 +219,44 @@ int main(int argc, char** argv)
 
 
 // connect to Evohome server
+cout << "connect to Evohome server\n";
 	EvohomeClient eclient = EvohomeClient(evoconfig["usr"],evoconfig["pw"]);
+cout << "connected" << endl;
 
 // retrieve Evohome installation
+cout << "retrieve Evohome installation\n";
 	eclient.full_installation();
 
-	// set Evohome heating system
-	evo_temperatureControlSystem* tcs = NULL;
+// set Evohome heating system
+	int location = 0;
+	int gateway = 0;
+	int temperatureControlSystem = 0;
 
-	if ( evoconfig.find("systemId") != evoconfig.end() ) {
-		if (verbose)
-			cout << "using systemId from " << CONF_FILE << endl;
- 		tcs = eclient.get_temperatureControlSystem_by_ID(evoconfig["systemId"]);
-		if (tcs == NULL)
-			exit_error(ERROR+"the Evohome systemId specified in "+CONF_FILE+" cannot be found");
+	if ( evoconfig.find("locationId") != evoconfig.end() ) {
+		while ( (eclient.locations[location].locationId != evoconfig["locationId"])  && (location < (int)eclient.locations.size()) )
+			location++;
+		if (location == (int)eclient.locations.size())
+			exit_error(ERROR+"the Evohome location ID specified in "+CONF_FILE+" cannot be found");
 	}
-	else if (eclient.is_single_heating_system())
-		tcs = &eclient.locations[0].gateways[0].temperatureControlSystems[0];
-	else
-		select_temperatureControlSystem(eclient);
+	if ( evoconfig.find("gatewayId") != evoconfig.end() ) {
+		while ( (eclient.locations[location].gateways[gateway].gatewayId != evoconfig["gatewayId"])  && (gateway < (int)eclient.locations[location].gateways.size()) )
+			gateway++;
+		if (gateway == (int)eclient.locations[location].gateways.size())
+			exit_error(ERROR+"the Evohome gateway ID specified in "+CONF_FILE+" cannot be found");
+	}
+	if ( evoconfig.find("systemId") != evoconfig.end() ) {
+		while ( (eclient.locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem].systemId != evoconfig["systemId"])  && (temperatureControlSystem < (int)eclient.locations[location].gateways[gateway].temperatureControlSystems.size()) )
+			temperatureControlSystem++;
+		if (temperatureControlSystem == (int)eclient.locations[location].gateways[gateway].temperatureControlSystems.size())
+			exit_error(ERROR+"the Evohome system ID specified in "+CONF_FILE+" cannot be found");
+	}
+	EvohomeClient::temperatureControlSystem* tcs = &eclient.locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem];
 
-	if (tcs == NULL)
-		exit_error(ERROR+"multiple Evohome systems found - don't know which one to use for status");
 
 // retrieve Evohome status
-	if ( !	eclient.get_status(tcs->locationId) )  cout << "status fail" << endl;
+	if ( !	eclient.get_status(location) )  cout << "status fail" << endl;
+
+
 
 
 // retrieving schedules is painfully slow as we can only fetch them one zone at a time.
@@ -250,7 +271,7 @@ int main(int argc, char** argv)
 
 
 // start demo output
-	cout << "Model Type = " << eclient.json_get_val(tcs->installationInfo, "modelType") << endl;
+	cout << "\nModel Type = " << eclient.json_get_val(tcs->installationInfo, "modelType") << endl;
 	cout << "System ID = " << eclient.json_get_val(tcs->installationInfo, "systemId") << endl;
 	cout << "System mode = " << eclient.json_get_val(tcs->status, "systemModeStatus", "mode") << endl;
 
@@ -258,7 +279,7 @@ int main(int argc, char** argv)
 
 	int newzone = 0;
 	cout << "idx    ID         temp    mode              setpoint   until                   name\n";
-	for (std::map<int, evo_zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
+	for (std::map<int, EvohomeClient::zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
 	{
 		std::map<std::string,std::string> zone = evo_get_zone_data(it->second);
 		if (zone["until"].length() == 0)
@@ -309,15 +330,34 @@ int main(int argc, char** argv)
 
 	cout << endl;
 
+
+//cout << json_object_to_json_string_ext(eclient.get_zone_by_ID("1605795")->schedule,JSON_C_TO_STRING_PRETTY) << endl;
+
+//eclient._get_zone_by_ID("1605795");
+
+
+
+cout << eclient.get_next_switchpoint("1605795") << endl;
+
+cout << eclient.get_next_switchpoint(tcs, 0) << endl;
+
+eclient.set_temperature("1605795", "16.2", "2016-12-04T17:00:00Z");
+
+
+
+cout << "SystemId = " << eclient.get_zone_temperatureControlSystem(eclient.get_zone_by_ID("1605795"))->systemId << endl;
+
 	eclient.cleanup();
 	dclient.cleanup();
 
 
-// Evohome v2 API
-//	EvohomeClientV2 ev2client = EvohomeClientV2(evoconfig["usr"],evoconfig["pw"]);
-//	ev2client.full_installation();
-//	ev2client.cleanup();
 
+/*
+// Evohome v2 API
+	EvohomeClientV2 ev2client = EvohomeClientV2(evoconfig["usr"],evoconfig["pw"]);
+	ev2client.full_installation();
+	ev2client.cleanup();
+*/
 	return 0;
 }
 
