@@ -15,7 +15,7 @@
 #include <time.h>
 #include "../lib/domoticzclient.h"
 #include "../lib/evohomeclient.h"
-#include "../lib/evohomeclientv2.h"
+#include "../lib/evohomeoldclient.h"
 
 #ifndef CONF_FILE
 #define CONF_FILE "evoconfig"
@@ -30,7 +30,7 @@
 #endif
 
 #ifndef LOCKFILE
-#define LOCKFILE "/var/tmp/evo-noup.tmp"
+#define LOCKFILE "/tmp/evo-noup.tmp"
 #endif
 
 #define HARDWARE_TYPE "40"

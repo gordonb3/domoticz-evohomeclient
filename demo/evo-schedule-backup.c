@@ -24,7 +24,7 @@
 #endif
 
 #ifndef LOCKFILE
-#define LOCKFILE "/var/tmp/evo-noup.tmp"
+#define LOCKFILE "/tmp/evo-noup.tmp"
 #endif
 
 #ifndef LOCKSECONDS

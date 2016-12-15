@@ -16,7 +16,6 @@
 #include <stdlib.h>
 #include "../lib/domoticzclient.h"
 #include "../lib/evohomeclient.h"
-#include "../lib/evohomeclientv2.h"
 
 
 #ifndef CONF_FILE
@@ -28,7 +27,7 @@
 #endif
 
 #ifndef LOCKFILE
-#define LOCKFILE "/var/tmp/evo-noup.tmp"
+#define LOCKFILE "/tmp/evo-noup.tmp"
 #endif
 
 #ifndef LOCKSECONDS

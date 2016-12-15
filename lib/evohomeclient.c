@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
  *
- * Json client for Evohome
+ * Json client for UK/EMEA Evohome API
  *
  *
  * Source code subject to GNU GENERAL PUBLIC LICENSE version 3

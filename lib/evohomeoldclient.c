@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
  *
- * Json client for Evohome version 2 API
+ * Json client for Old Evohome API
  *
  *
  * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
@@ -11,8 +11,7 @@
 #include <cstring>
 #include <ctime>
 #include "webclient.h"
-#include "evohomeclient.h"
-#include "evohomeclientv2.h"
+#include "evohomeoldclient.h"
 
 
 #define EVOHOME_HOST "https://tccna.honeywell.com"
@@ -23,7 +22,7 @@ using namespace std;
 /*
  * Class construct
  */
-EvohomeClientV2::EvohomeClientV2(std::string user, std::string password)
+EvohomeOldClient::EvohomeOldClient(std::string user, std::string password)
 {
 	init();
 	login(user, password);
@@ -39,34 +38,34 @@ EvohomeClientV2::EvohomeClientV2(std::string user, std::string password)
 /*
  * Initialize curl web client
  */
-void EvohomeClientV2::init()
+void EvohomeOldClient::init()
 {
-	web_connection_init("evohomev2");
+	web_connection_init("old_evohome");
 }
 
 
 /*
  * Cleanup curl web client
  */
-void EvohomeClientV2::cleanup()
+void EvohomeOldClient::cleanup()
 {
-	web_connection_cleanup("evohomev2");
+	web_connection_cleanup("old_evohome");
 }
 
 /*
  * Execute web query
  */
-std::string EvohomeClientV2::send_receive_data(std::string url, curl_slist *header)
+std::string EvohomeOldClient::send_receive_data(std::string url, curl_slist *header)
 {
 	return send_receive_data(url, "", header);
 }
 
-std::string EvohomeClientV2::send_receive_data(std::string url, std::string postdata, curl_slist *header)
+std::string EvohomeOldClient::send_receive_data(std::string url, std::string postdata, curl_slist *header)
 {
 
 	stringstream ss_url;
 	ss_url << EVOHOME_HOST << url;
-	return web_send_receive_data("evohomev2", ss_url.str(), postdata, header);
+	return web_send_receive_data("old_evohome", ss_url.str(), postdata, header);
 }
 
 
@@ -80,7 +79,7 @@ std::string EvohomeClientV2::send_receive_data(std::string url, std::string post
 /* 
  * login to evohome web server
  */
-void EvohomeClientV2::login(std::string user, std::string password)
+void EvohomeOldClient::login(std::string user, std::string password)
 {
 	auth_info.clear();
 	struct curl_slist *lheader = NULL;
@@ -121,7 +120,7 @@ void EvohomeClientV2::login(std::string user, std::string password)
  *									*
  ************************************************************************/
 
-void EvohomeClientV2::full_installation()
+void EvohomeOldClient::full_installation()
 {
 	locations.clear();
 	stringstream url;

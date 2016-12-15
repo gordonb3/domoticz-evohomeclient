@@ -1,14 +1,14 @@
 /*
  * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
  *
- * Json client for Evohome version 2 API
+ * Json client for Old Evohome API
  *
  *
  * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
  */
 
-#ifndef _EvohomeClientv2
-#define _EvohomeClientv2
+#ifndef _EvohomeOldClient
+#define _EvohomeOldClient
 
 #include <iostream>
 #include <fstream>
@@ -19,7 +19,7 @@
 #include <map>
 
 
-class EvohomeClientV2
+class EvohomeOldClient
 {
 	private:
 	std::map<std::string,std::string> auth_info;
@@ -42,7 +42,7 @@ class EvohomeClientV2
 	std::map<std::string,std::string> sys_info;
 	std::map<std::string,std::string> schedule;
 
-	EvohomeClientV2(std::string user, std::string password);
+	EvohomeOldClient(std::string user, std::string password);
 	void cleanup();
 
 	std::string send_receive_data(std::string url, curl_slist *header);

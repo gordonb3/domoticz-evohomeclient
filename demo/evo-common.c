@@ -23,7 +23,7 @@
 using namespace std;
 
 std::string configfile;
-std::map<std::string,std::string> evoconfig;
+std::map<std::string, std::string> evoconfig;
 
 bool verbose;
 
