@@ -134,9 +134,9 @@ void usage(std::string mode)
 	cout << "      --set-dhw  <PARMS>    set or cancel domestic hot water override\n";
 	cout << endl;
 	cout << "Parameters for set arguments:\n";
-	cout << " --set-mode <system mode> [time until]\n";
-	cout << " --set-temp <zone id> <setpoint mode> <target temperature> [time until]\n";
-	cout << " --set-dhw  <zone id> <dhw status> [time until]\n";
+	cout << " --set-mode <system mode> [time until] [+duration]\n";
+	cout << " --set-temp <zone id> <setpoint mode> <target temperature> [time until] [+duration]\n";
+	cout << " --set-dhw  <zone id> <dhw status> [time until] [+duration]\n";
 	cout << endl;
 	exit(0);
 }
@@ -809,16 +809,26 @@ void cmd_backup_and_restore_schedules()
 
 std::string format_time(std::string utc_time)
 {
-	if (utc_time.length() < 19)
-		exit_error(s_ERROR+"bad timestamp value on command line");
 	struct tm ltime;
+	if (utc_time[0] == '+')
+	{
+		int minutes = atoi(utc_time.substr(1).c_str());
+		gmtime_r(&now, &ltime);
+		ltime.tm_min += minutes;
+		
+	}
+	else if (utc_time.length() < 19)
+		exit_error(s_ERROR+"bad timestamp value on command line");
+	else
+	{
+		ltime.tm_year = atoi(utc_time.substr(0, 4).c_str()) - 1900;
+		ltime.tm_mon = atoi(utc_time.substr(5, 2).c_str()) - 1;
+		ltime.tm_mday = atoi(utc_time.substr(8, 2).c_str());
+		ltime.tm_hour = atoi(utc_time.substr(11, 2).c_str());
+		ltime.tm_min = atoi(utc_time.substr(14, 2).c_str());
+		ltime.tm_sec = atoi(utc_time.substr(17, 2).c_str());
+	}
 	ltime.tm_isdst = -1;
-	ltime.tm_year = atoi(utc_time.substr(0, 4).c_str()) - 1900;
-	ltime.tm_mon = atoi(utc_time.substr(5, 2).c_str()) - 1;
-	ltime.tm_mday = atoi(utc_time.substr(8, 2).c_str());
-	ltime.tm_hour = atoi(utc_time.substr(11, 2).c_str());
-	ltime.tm_min = atoi(utc_time.substr(14, 2).c_str());
-	ltime.tm_sec = atoi(utc_time.substr(17, 2).c_str());
 	time_t ntime = mktime(&ltime);
 	if ( ntime == -1)
 		exit_error(s_ERROR+"bad timestamp value on command line");
