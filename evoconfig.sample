@@ -20,3 +20,7 @@ srt=''
 
 #or supply the Evohome systemId
 ;systemId=''
+
+#uncomment the following line if you want the hardware to be registered
+#under a different name in Domoticz (default:evohome)
+;hwname='evohome'

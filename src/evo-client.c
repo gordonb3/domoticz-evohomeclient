@@ -74,7 +74,7 @@
 using namespace std;
 
 time_t now;
-int tzoffset;
+int tzoffset, newzone;
 bool createdev, updatedev, reloadcache, dobackup, verbose;
 std::string command, backupfile, configfile, scriptroot, s_ERROR, s_WARN;
 std::map<std::string,std::string> evoconfig;
@@ -88,6 +88,7 @@ void init_globals()
 
 	now = time(0);
 	tzoffset = -1;
+	newzone = 0;
 	createdev = false;
 	updatedev = true;
 	reloadcache = false;
@@ -636,7 +637,6 @@ void update_zone(DomoticzClient &dclient, map<std::string,std::string> zonedata)
 	std::string idx;
 	if ( updatedev && (dclient.devices.find(zonedata["zoneId"]) == dclient.devices.end()) )
 	{
-		int newzone = 0;
 		std::string s_newzone = int_to_string(newzone);
 		while ( (dclient.devices.find(s_newzone) != dclient.devices.end()) && (dclient.devices[s_newzone].SubType != "Zone") )
 		{

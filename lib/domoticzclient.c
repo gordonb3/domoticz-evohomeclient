@@ -178,7 +178,8 @@ int DomoticzClient::get_hwid(std::string hw_type, std::string hw_name)
 	int i;
 	for (i = 0; i < l; i++)
 	{
-		if ( _json_find_object(j_list, &j_hw, "Type", hw_type.c_str()) )
+		j_hw = json_object_array_get_idx(j_list, i);
+		if (_json_get_val(j_hw, "Type") == hw_type.c_str())
 			if ( (hw_name == "") || (_json_get_val(j_hw, "Name") == hw_name.c_str()) )
 				return atoi( _json_get_val(j_hw, "idx").c_str() );
 	}
