@@ -583,45 +583,60 @@ void get_evohome_devices(DomoticzClient &dclient, int hwid)
 
 void update_system(DomoticzClient &dclient, map<std::string,std::string> systemdata)
 {
-	if (verbose)
-		cout << " - change Evohome system status to '" << systemdata["systemMode"] << "'\n";
-	dclient.update_system_mode(dclient.devices[systemdata["systemId"]].idx, systemdata["systemMode"]);
-	if (updatedev)
+	std::string idx="";
+	if ( updatedev && (dclient.devices.find(systemdata["systemId"]) == dclient.devices.end()) )
+	{
+		int _newzone = 0;
+		std::string s_newzone = int_to_string(_newzone);
+		while ( (dclient.devices.find(s_newzone) != dclient.devices.end()) && (dclient.devices[s_newzone].SubType != CONTROLLER_SUBTYPE) )
+		{
+			_newzone++;
+			s_newzone = int_to_string(_newzone);
+		}
+		if (dclient.devices.find(s_newzone) == dclient.devices.end())
+			cerr << "WARNING: there does not appear to be a Controller device for this hardware in Domoticz\n";
+		else
+			idx = dclient.devices[s_newzone].idx;
+	}
+	else
+		idx = dclient.devices[systemdata["systemId"]].idx;
+	if ( (updatedev) && (idx != "") )
 	{
 		stringstream sms;
 		sms << scriptroot << SETMODE_SCRIPT;
 		if (verbose)
 			cout << " - change Evohome system name to '" << systemdata["modelType"] << "'\n - change setmode script path to '" << sms.str() << "'\n";
-		if (dclient.devices.find(systemdata["systemId"]) != dclient.devices.end())
-			dclient.update_system_dev(dclient.devices[systemdata["systemId"]].idx, systemdata["systemId"], systemdata["modelType"], sms.str());
+		dclient.update_system_dev(idx, systemdata["systemId"], systemdata["modelType"], sms.str());
+	}
+	if (idx != "")
+	{
+		if (verbose)
+			cout << " - change Evohome system status to '" << systemdata["systemMode"] << "'\n";
+		dclient.update_system_mode(dclient.devices[systemdata["systemId"]].idx, systemdata["systemMode"]);
 	}
 }
 
 
 void update_dhw(DomoticzClient &dclient, map<std::string,std::string> dhwdata)
 {
-	std::string idx;
+	std::string idx="";
 	if ( updatedev && (dclient.devices.find(dhwdata["dhwId"]) == dclient.devices.end()) )
 	{
-		int newzone = 0;
-		std::string s_newzone = int_to_string(newzone);
-		while ( (dclient.devices.find(s_newzone) != dclient.devices.end()) && (dclient.devices[s_newzone].SubType != "domesticHotWater") )
+		int _newzone = 0;
+		std::string s_newzone = int_to_string(_newzone);
+		while ( (dclient.devices.find(s_newzone) != dclient.devices.end()) && (dclient.devices[s_newzone].SubType != HOTWATER_SUBTYPE) )
 		{
-			newzone++;
-			s_newzone = int_to_string(newzone);
+			_newzone++;
+			s_newzone = int_to_string(_newzone);
 		}
-		if (dclient.devices.find(int_to_string(newzone)) == dclient.devices.end())
+		if (dclient.devices.find(s_newzone) == dclient.devices.end())
 			cerr << "WARNING: can't register new Hot Water device because you have no free zones available for this hardware in Domoticz\n";
 		else
 			idx = dclient.devices[s_newzone].idx;
-		newzone++;
 	}
 	else
 		idx = dclient.devices[dhwdata["dhwId"]].idx;
-	if (verbose)
-		cout << " - change status of Hot Water device: temperature = " << dhwdata["temperature"] << ", state = " << dhwdata["state"] << ", mode = " << dhwdata["mode"] << ", until = " << dhwdata["until"] << endl;
-	dclient.update_zone_status(idx, dhwdata["temperature"], dhwdata["state"], dhwdata["mode"], dhwdata["until"]);
-	if (updatedev)
+	if ( (updatedev) && (idx != "") )
 	{
 		stringstream sms;
 		sms << scriptroot << SETDHW_SCRIPT;
@@ -629,21 +644,27 @@ void update_dhw(DomoticzClient &dclient, map<std::string,std::string> dhwdata)
 			cout << " - change hotwater script path to '" << sms.str() << "'\n";
 		dclient.update_zone_dev(idx, dhwdata["dhwId"], "Hot Water", sms.str());
 	}
+	if (idx != "")
+	{
+		if (verbose)
+			cout << " - change status of Hot Water device: temperature = " << dhwdata["temperature"] << ", state = " << dhwdata["state"] << ", mode = " << dhwdata["mode"] << ", until = " << dhwdata["until"] << endl;
+		dclient.update_zone_status(idx, dhwdata["temperature"], dhwdata["state"], dhwdata["mode"], dhwdata["until"]);
+	}
 }
 
 
 void update_zone(DomoticzClient &dclient, map<std::string,std::string> zonedata)
 {
-	std::string idx;
+	std::string idx="";
 	if ( updatedev && (dclient.devices.find(zonedata["zoneId"]) == dclient.devices.end()) )
 	{
 		std::string s_newzone = int_to_string(newzone);
-		while ( (dclient.devices.find(s_newzone) != dclient.devices.end()) && (dclient.devices[s_newzone].SubType != "Zone") )
+		while ( (dclient.devices.find(s_newzone) != dclient.devices.end()) && (dclient.devices[s_newzone].SubType != ZONE_SUBTYPE) )
 		{
 			newzone++;
 			s_newzone = int_to_string(newzone);
 		}
-		if (dclient.devices.find(int_to_string(newzone)) == dclient.devices.end())
+		if (dclient.devices.find(s_newzone) == dclient.devices.end())
 			cerr << "WARNING: can't register new Evohome zone because you have no free zones available for this hardware in Domoticz\n";
 		else
 			idx = dclient.devices[s_newzone].idx;
@@ -651,7 +672,7 @@ void update_zone(DomoticzClient &dclient, map<std::string,std::string> zonedata)
 	}
 	else
 		idx = dclient.devices[zonedata["zoneId"]].idx;
-	if (updatedev)
+	if ( (updatedev) && (idx != "") )
 	{
 		stringstream sms;
 		sms << scriptroot << SETTEMP_SCRIPT;
@@ -659,9 +680,12 @@ void update_zone(DomoticzClient &dclient, map<std::string,std::string> zonedata)
 			cout << " - set name of zone device " << idx << " to '" << zonedata["name"] << "'\n - change zone script path to '" << sms.str() << "'\n";
 		dclient.update_zone_dev(idx, zonedata["zoneId"], zonedata["name"], sms.str());
 	}
-	if (verbose)
-		cout << " - change status of zone " << zonedata["name"] << ": temperature = " << zonedata["temperature"] << ", setpoint = " << zonedata["targetTemperature"] << ", mode = " << zonedata["setpointMode"] << ", until = " << zonedata["until"] << endl;
-	dclient.update_zone_status(idx, zonedata["temperature"], zonedata["targetTemperature"], zonedata["setpointMode"], zonedata["until"]);
+	if (idx != "")
+	{
+		if (verbose)
+			cout << " - change status of zone " << zonedata["name"] << ": temperature = " << zonedata["temperature"] << ", setpoint = " << zonedata["targetTemperature"] << ", mode = " << zonedata["setpointMode"] << ", until = " << zonedata["until"] << endl;
+		dclient.update_zone_status(idx, zonedata["temperature"], zonedata["targetTemperature"], zonedata["setpointMode"], zonedata["until"]);
+	}
 }
 
 
