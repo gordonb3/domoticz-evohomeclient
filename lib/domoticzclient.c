@@ -307,14 +307,14 @@ void DomoticzClient::update_system_mode(std::string idx, std::string currentmode
 
 
 
-void DomoticzClient::update_zone_dev(std::string idx, std::string dhwId, std::string dev_name, std::string setdhw_script)
+void DomoticzClient::update_zone_dev(std::string idx, std::string zoneId, std::string dev_name, std::string settemp_script)
 {
-	int smslen = setdhw_script.length();
+	int smslen = settemp_script.length();
 	int encoded_data_length = Base64encode_len(smslen);
 	char* base64_string = (char*)malloc(encoded_data_length);
-	Base64encode(base64_string, setdhw_script.c_str(), smslen);
+	Base64encode(base64_string, settemp_script.c_str(), smslen);
 	stringstream ss;
-	ss << "/json.htm?type=setused&idx=" << idx << "&deviceid=" << dhwId << "&used=true&name=" << dev_name << "&strparam1=" << base64_string;
+	ss << "/json.htm?type=setused&idx=" << idx << "&deviceid=" << zoneId << "&used=true&name=" << urlencode(dev_name) << "&strparam1=" << base64_string;
 	send_receive_data(ss.str());
 }
 

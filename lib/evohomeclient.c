@@ -330,7 +330,6 @@ bool EvohomeClient::get_status(int location)
 	stringstream url;
 	url << "/WebAPI/emea/api/v1/location/" << locations[location].locationId << "/status?includeTemperatureControlSystems=True";
 	locations[location].status = json_tokener_parse(send_receive_data(url.str(), evoheader).c_str());
-
 	// get gateway status
 	json_object *j_gwlist;
 	if ( json_object_object_get_ex(locations[location].status, "gateways", &j_gwlist) )

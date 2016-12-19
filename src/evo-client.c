@@ -604,6 +604,8 @@ void update_system(DomoticzClient &dclient, map<std::string,std::string> systemd
 	{
 		stringstream sms;
 		sms << scriptroot << SETMODE_SCRIPT;
+		if (configfile != CONF_FILE)
+			sms << " -c " << configfile;
 		if (verbose)
 			cout << " - change Evohome system name to '" << systemdata["modelType"] << "'\n - change setmode script path to '" << sms.str() << "'\n";
 		dclient.update_system_dev(idx, systemdata["systemId"], systemdata["modelType"], sms.str());
@@ -640,6 +642,8 @@ void update_dhw(DomoticzClient &dclient, map<std::string,std::string> dhwdata)
 	{
 		stringstream sms;
 		sms << scriptroot << SETDHW_SCRIPT;
+		if (configfile != CONF_FILE)
+			sms << " -c " << configfile;
 		if (verbose)
 			cout << " - change hotwater script path to '" << sms.str() << "'\n";
 		dclient.update_zone_dev(idx, dhwdata["dhwId"], "Hot Water", sms.str());
@@ -676,6 +680,8 @@ void update_zone(DomoticzClient &dclient, map<std::string,std::string> zonedata)
 	{
 		stringstream sms;
 		sms << scriptroot << SETTEMP_SCRIPT;
+		if (configfile != CONF_FILE)
+			sms << " -c " << configfile;
 		if (verbose)
 			cout << " - set name of zone device " << idx << " to '" << zonedata["name"] << "'\n - change zone script path to '" << sms.str() << "'\n";
 		dclient.update_zone_dev(idx, zonedata["zoneId"], zonedata["name"], sms.str());

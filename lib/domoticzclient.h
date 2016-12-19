@@ -66,7 +66,7 @@ class DomoticzClient
 	void update_system_dev(std::string idx, std::string systemId, std::string modelType, std::string setmode_script);
 	void update_system_mode(std::string idx, std::string currentmode);
 
-	void update_zone_dev(std::string idx, std::string dhwId, std::string dev_name, std::string setdhw_script);
+	void update_zone_dev(std::string idx, std::string zoneId, std::string dev_name, std::string settemp_script);
 	void update_zone_status(std::string idx, std::string temperature, std::string state, std::string zonemode, std::string until);
 };
 
