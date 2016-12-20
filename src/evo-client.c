@@ -50,9 +50,9 @@
 #define LOCKSECONDS 60
 #endif
 
-#define SETMODE_SCRIPT MYNAME " --set-mode {status}"
-#define SETDHW_SCRIPT MYNAME " --set-dhw {deviceid} {mode} {state} {until}"
-#define SETTEMP_SCRIPT MYNAME " --set-temp {deviceid} {mode} {setpoint} {until}"
+#define SETMODE_SCRIPT "--set-mode {status}"
+#define SETDHW_SCRIPT "--set-dhw {deviceid} {mode} {state} {until}"
+#define SETTEMP_SCRIPT "--set-temp {deviceid} {mode} {setpoint} {until}"
 
 #define HARDWARE_TYPE "40"
 
@@ -76,7 +76,7 @@ using namespace std;
 time_t now;
 int tzoffset, newzone;
 bool createdev, updatedev, reloadcache, dobackup, verbose;
-std::string command, backupfile, configfile, scriptroot, s_ERROR, s_WARN;
+std::string command, backupfile, configfile, scriptfullname, s_ERROR, s_WARN;
 std::map<std::string,std::string> evoconfig;
 map<int,std::string> parameters;
 
@@ -84,7 +84,7 @@ void init_globals()
 {
 	evoconfig["hwname"] = HWNAME;
 	configfile = CONF_FILE;
-	scriptroot = MYPATH;
+	scriptfullname = MYPATH MYNAME;
 
 	now = time(0);
 	tzoffset = -1;
@@ -150,6 +150,7 @@ bool read_evoconfig()
 	{
 		stringstream key,val;
 		bool isKey = true;
+		bool quoted = false;
 		string line;
 		unsigned int i;
 		while ( getline(myfile,line) )
@@ -158,7 +159,14 @@ bool read_evoconfig()
 				continue;
 			for (i = 0; i < line.length(); i++)
 			{
-				if ( (line[i] == ' ') || (line[i] == '\'') || (line[i] == '"') || (line[i] == 0x0d) )
+				if ( (line[i] == '\'') || (line[i] == '"') )
+				{
+					quoted = ( ! quoted );
+					continue;
+				}
+				if (line[i] == 0x0d)
+					continue;
+				if ( (line[i] == ' ') && ( ! quoted ) )
 					continue;
 				if (line[i] == '=')
 				{
@@ -168,7 +176,11 @@ bool read_evoconfig()
 				if (isKey)
 					key << line[i];
 				else
+				{
+					if ( (line[i] == ' ') && (key.str() == "srt") )
+						cerr << "WARNING: space detected in 'srt' setting. Controlling Evohome from Domoticz will likely not function\n";
 					val << line[i];
+				}
 			}
 			if ( ! isKey )
 			{
@@ -603,7 +615,7 @@ void update_system(DomoticzClient &dclient, map<std::string,std::string> systemd
 	if ( (updatedev) && (idx != "") )
 	{
 		stringstream sms;
-		sms << scriptroot << SETMODE_SCRIPT;
+		sms << scriptfullname << " " << SETMODE_SCRIPT;
 		if (configfile != CONF_FILE)
 			sms << " -c " << configfile;
 		if (verbose)
@@ -641,7 +653,7 @@ void update_dhw(DomoticzClient &dclient, map<std::string,std::string> dhwdata)
 	if ( (updatedev) && (idx != "") )
 	{
 		stringstream sms;
-		sms << scriptroot << SETDHW_SCRIPT;
+		sms << scriptfullname << " " << SETDHW_SCRIPT;
 		if (configfile != CONF_FILE)
 			sms << " -c " << configfile;
 		if (verbose)
@@ -679,7 +691,7 @@ void update_zone(DomoticzClient &dclient, map<std::string,std::string> zonedata)
 	if ( (updatedev) && (idx != "") )
 	{
 		stringstream sms;
-		sms << scriptroot << SETTEMP_SCRIPT;
+		sms << scriptfullname << " " << SETTEMP_SCRIPT;
 		if (configfile != CONF_FILE)
 			sms << " -c " << configfile;
 		if (verbose)
@@ -765,11 +777,55 @@ void cmd_update()
 
 	if (updatedev)
 	{
+#ifdef _WIN32
+		stringstream ss;
+		ss << hex;
+		if (evoconfig["srt"].substr(0,9) == "script://")
+			ss << evoconfig["srt"] << scriptfullname << ".exe";
+		else
+		{
+			int l = evoconfig["srt"].length();
+			int i;
+			char c;
+			ss << "script://";
+			for (i = 0; i < l; i++)
+			{
+				c = evoconfig["srt"][i];
+				if (c == '\\')
+				{
+					ss << '/';
+					continue;
+				}
+				if ( (c == '-') || (c == '_') || (c == '.') || (c == '~') || (c == ':') )
+				{
+					ss << c;
+					continue;
+				}
+				if ( (c >= 0x30) && (c < 0x3A) )
+				{
+					ss << c;
+					continue;
+				}
+				if ( ((c|0x20) > 0x60) && ((c|0x20) < 0x7b) )
+				{
+					ss << c;
+					continue;
+				}
+				if (c < 0x10)
+					ss << uppercase << "%0" << int((unsigned char) c) << nouppercase;
+				else
+					ss << uppercase << '%' << int((unsigned char) c) << nouppercase;
+			}
+			ss << scriptfullname << ".exe";
+		}
+		scriptfullname = ss.str();
+#else
 		stringstream ss;
 		if (evoconfig["srt"].substr(0,9) != "script://")
 			ss << "script://";
-		ss << evoconfig["srt"] << scriptroot;
-		scriptroot = ss.str();
+		ss << evoconfig["srt"] << scriptfullname;
+		scriptfullname = ss.str();
+#endif
 	}
 
 

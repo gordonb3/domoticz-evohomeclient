@@ -6,8 +6,8 @@ pw=''
 url='127.0.0.1'
 #fill in Domoticz port
 port='8080'
-#fill in script root e.g. script:///home/<user>/evohome-client script::///usr/local/bin etc
-srt=''
+#fill in script root; e.g. script:///home/<user>/evohome-client script::///usr/local/bin etc
+srt='script://'
 
 
 #The following applies if you have multiple Evohome systems:

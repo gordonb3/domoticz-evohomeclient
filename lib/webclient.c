@@ -172,9 +172,9 @@ std::string urlencode(std::string str)
 			continue;
 		}
 		if (c < 0x10)
-			ss << uppercase << "%0" <<  int((unsigned char) c)<< nouppercase;
+			ss << uppercase << "%0" << int((unsigned char) c) << nouppercase;
 		else
-			ss << uppercase << '%' <<  int((unsigned char) c)<< nouppercase;
+			ss << uppercase << '%' << int((unsigned char) c) << nouppercase;
 	}
 	return ss.str();
 }
