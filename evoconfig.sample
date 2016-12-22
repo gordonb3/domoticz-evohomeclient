@@ -9,11 +9,14 @@ port='8080'
 #fill in script root; e.g. script:///home/<user>/evohome-client script::///usr/local/bin etc
 srt='script://'
 
+#uncomment and complete the following line to enable logging to a file
+;logfile=''
+
 
 #The following applies if you have multiple Evohome systems:
 
 #uncomment the following lines if you like to use the first Evohome system returned
-#change numbers to acces different installations
+#change numbers to access different installations
 ;location=0
 ;gateway=0
 ;controlsystem=0
