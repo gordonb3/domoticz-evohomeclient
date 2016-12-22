@@ -1029,7 +1029,7 @@ void cmd_set_temperature()
 		std::string temperature = dclient.devices[parameters[1]].Temp;
 		if (verbose)
 			cout << "correct until time value in Domoticz\n";
-		dclient.update_zone_status(idx, temperature, parameters[3], "TemporaryOverride", utc_to_local(s_until).substr(0,19));
+		dclient.update_zone_status(idx, temperature, parameters[3], "TemporaryOverride", s_until);
 		dclient.cleanup();
 	}
 
