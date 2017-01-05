@@ -1176,7 +1176,6 @@ int main(int argc, char** argv)
 		stringstream ss;
 		ss << getpath(argv[0]) << scheduleCache;
 		scheduleCache = ss.str();
-cout << "schedule cache = " << scheduleCache << endl;
 	}
 
 	if (command == "update")
