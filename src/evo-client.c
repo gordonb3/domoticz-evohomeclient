@@ -48,7 +48,7 @@
 #endif
 
 #ifndef LOCKSECONDS
-#define LOCKSECONDS 50
+#define LOCKSECONDS 60
 #endif
 
 #define SETMODE_SCRIPT "--set-mode {status}"
@@ -77,7 +77,7 @@ using namespace std;
 time_t now;
 int tzoffset, newzone;
 bool createdev, updatedev, reloadcache, dobackup, verbose, dolog;
-std::string command, backupfile, configfile, lockfile, scriptfullname, szERROR, szWARN, logfile, szLOG;
+std::string command, backupfile, configfile, lockfile, scriptfullname, scheduleCache, szERROR, szWARN, logfile, szLOG;
 std::map<std::string,std::string> evoconfig;
 map<int,std::string> parameters;
 ofstream flog;
@@ -86,8 +86,9 @@ void init_globals()
 {
 	evoconfig["hwname"] = HWNAME;
 	configfile = CONF_FILE;
-	lockfile = LOCKFILE;
 	scriptfullname = MYPATH MYNAME;
+	lockfile = LOCKFILE;
+	scheduleCache = SCHEDULE_CACHE;
 
 	now = time(0);
 	tzoffset = -1;
@@ -792,12 +793,12 @@ void read_schedules(EvohomeClient &eclient)
 	/* retrieving schedules is painfully slow as we can only fetch them one zone at a time.
 	 * luckily schedules do not change very often, so we can use a local cache
 	 */
-	if ( reloadcache || ( ! eclient.read_schedules_from_file(SCHEDULE_CACHE) ) )
+	if ( reloadcache || ( ! eclient.read_schedules_from_file(scheduleCache) ) )
 	{
 		log("reloading schedules cache");
-		if ( ! eclient.schedules_backup(SCHEDULE_CACHE) )
-			exit_error(szERROR+"failed to open schedule cache file '"+SCHEDULE_CACHE+"'");
-		eclient.read_schedules_from_file(SCHEDULE_CACHE);
+		if ( ! eclient.schedules_backup(scheduleCache) )
+			exit_error(szERROR+"failed to open schedule cache file '"+scheduleCache+"'");
+		eclient.read_schedules_from_file(scheduleCache);
 	}
 	log("read schedules from cache");
 }
@@ -1159,10 +1160,23 @@ int main(int argc, char** argv)
 	if (lockfile[0] != '/')
 #endif
 	{
-		// can't rely on relative path - use application dir instead
+		// can't rely on relative path from current - prefix with path to application
 		stringstream ss;
 		ss << getpath(argv[0]) << lockfile;
 		lockfile = ss.str();
+	}
+
+#ifdef _WIN32
+	if (scheduleCache[1] != ':')
+#else
+	if (scheduleCache[0] != '/')
+#endif
+	{
+		// can't rely on relative path from current - prefix with path to application
+		stringstream ss;
+		ss << getpath(argv[0]) << scheduleCache;
+		scheduleCache = ss.str();
+cout << "schedule cache = " << scheduleCache << endl;
 	}
 
 	if (command == "update")
