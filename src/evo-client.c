@@ -39,11 +39,11 @@
 #define SCHEDULE_CACHE "schedules.json"
 #endif
 
-#ifndef LOCKFILE
+#ifndef LOCK_FILE
 #ifdef _WIN32
-#define LOCKFILE "evo-lastup"
+#define LOCK_FILE "evo-lastup"
 #else
-#define LOCKFILE "/tmp/evo-lastup"
+#define LOCK_FILE "/tmp/evo-lastup"
 #endif
 #endif
 
@@ -87,7 +87,7 @@ void init_globals()
 	evoconfig["hwname"] = HWNAME;
 	configfile = CONF_FILE;
 	scriptfullname = MYPATH MYNAME;
-	lockfile = LOCKFILE;
+	lockfile = LOCK_FILE;
 	scheduleCache = SCHEDULE_CACHE;
 
 	now = time(0);
