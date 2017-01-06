@@ -46,7 +46,16 @@ Scared about building yourself? I'm providing prebuilt binaries for the followin
 1. [Linux armv5te]( ../../releases/download/1.1.0.6/evo-client-linux-x64-1.1.0.6.zip )
 (e.g. Excito B3, Sheeva plug, ...)
 
+## Running the client
 
+You need to fill in some details in evoconfig. A sample file with instructions is included in the source and binary archives.
+
+1. update usr and pw with your username and password credentials from the evohome web portal http://www.mytotalconnect.com.
+1. update srt with the complete - absolute - path to the client application<br>!!! do not use spaces in this path
+1. update url and port if applicable (e.g. different port, different server, different webroot)
+
+Run ` evo-client --init ` to add your evohome installation to Domoticz (if you migrated from the python scripts you can skip this step). The client's default action, i.e. when run without parameters, is to update Domoticz with the current status values of your evohome installation. Note that evohome schedules are cached, so if you change those on the controller you will need to refresh them in the client to have Domoticz show the correct until time.<br>
+Run ` evo-client --help ` to view more options.
 
 ## Feedback Welcome!
 
