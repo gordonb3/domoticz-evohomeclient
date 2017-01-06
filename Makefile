@@ -1,4 +1,4 @@
-CC      = g++
+CC      = $(CROSS_COMPILE)g++
 CFLAGS  +=  -c -Wall $(EXTRAFLAGS)
 LDFLAGS +=  -lcurl -ljson-c
 OBJ     = $(patsubst %.c,%.o,$(wildcard lib/*.c))
