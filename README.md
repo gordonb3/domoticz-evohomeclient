@@ -40,11 +40,14 @@ A computer running Domoticz of course! If you compile your own beta versions of 
 
 Scared about building yourself? I'm providing prebuilt binaries for the following systems:
 
-1. [Windows 32bit]( ../../releases/download/1.1.0.6/evo-client-win-x86-1.1.0.6.zip )
-1. [Linux 32bit]( ../../releases/download/1.1.0.6/evo-client-linux-x86-1.1.0.6.zip )
-1. [Linux 64bit]( ../../releases/download/1.1.0.6/evo-client-linux-x64-1.1.0.6.zip )
-1. [Linux armv5te]( ../../releases/download/1.1.0.6/evo-client-linux-x64-1.1.0.6.zip )
+1. [Windows 32bit]( ../../releases/download/1.1.0.7/evo-client-win-x86-1.1.0.7.zip )
+1. [Linux 32bit]( ../../releases/download/1.1.0.7/evo-client-linux-x86-1.1.0.7.tar.gz )
+1. [Linux 64bit]( ../../releases/download/1.1.0.7/evo-client-linux-x64-1.1.0.7.tar.gz )
+1. [Linux armv5te]( ../../releases/download/1.1.0.7/evo-client-linux-armv5te-1.1.0.7.tar.gz )<br>
 (e.g. Excito B3, SheevaPlug, Linksys NSLU2, QNAP TS109/209/409, ...)
+1. [Linux armv7l]( ../../releases/download/1.1.0.7/evo-client-linux-armv7l-1.1.0.7.tar.gz ) !!! Untested<br>
+(e.g. Rpi2|3 32bit)
+
 
 ## Running the client
 
