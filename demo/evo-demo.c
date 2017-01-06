@@ -331,21 +331,9 @@ cout << "retrieve Evohome installation\n";
 	cout << endl;
 
 
-//cout << json_object_to_json_string_ext(eclient.get_zone_by_ID("1605795")->schedule,JSON_C_TO_STRING_PRETTY) << endl;
+	cout << json_object_to_json_string_ext(eclient.get_zone_by_ID("1234567")->installationInfo,JSON_C_TO_STRING_PRETTY) << endl << endl << endl;
+	cout << json_object_to_json_string_ext(eclient.get_zone_by_ID("1234567")->status,JSON_C_TO_STRING_PRETTY) << endl;
 
-//eclient._get_zone_by_ID("1605795");
-
-
-
-cout << eclient.get_next_switchpoint("1605795") << endl;
-
-cout << eclient.get_next_switchpoint(tcs, 0) << endl;
-
-eclient.set_temperature("1605795", "16.2", "2016-12-04T17:00:00Z");
-
-
-
-cout << "SystemId = " << eclient.get_zone_temperatureControlSystem(eclient.get_zone_by_ID("1605795"))->systemId << endl;
 
 	eclient.cleanup();
 	dclient.cleanup();

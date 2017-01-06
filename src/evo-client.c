@@ -48,7 +48,7 @@
 #endif
 
 #ifndef LOCKSECONDS
-#define LOCKSECONDS 60
+#define LOCKSECONDS 50
 #endif
 
 #define SETMODE_SCRIPT "--set-mode {status}"
