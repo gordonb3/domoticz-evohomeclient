@@ -44,7 +44,7 @@ Scared about building yourself? I'm providing prebuilt binaries for the followin
 1. [Linux 32bit]( ../../releases/download/1.1.0.6/evo-client-linux-x86-1.1.0.6.zip )
 1. [Linux 64bit]( ../../releases/download/1.1.0.6/evo-client-linux-x64-1.1.0.6.zip )
 1. [Linux armv5te]( ../../releases/download/1.1.0.6/evo-client-linux-x64-1.1.0.6.zip )
-(e.g. Excito B3, Sheeva plug, ...)
+(e.g. Excito B3, SheevaPlug, Linksys NSLU2, QNAP TS109/209/409, ...)
 
 ## Running the client
 
