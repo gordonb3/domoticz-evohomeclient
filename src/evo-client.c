@@ -564,28 +564,29 @@ std::string int_to_string(int myint)
 }
 
 
-std::string local_to_utc(std::string utc_time)
+std::string local_to_utc(std::string local_time)
 {
-	if (tzoffset == -1)
+	if (m_tzoffset == -1)
 	{
 		// calculate timezone offset once
+		time_t now = mytime(NULL);
 		struct tm utime;
 		gmtime_r(&now, &utime);
-		tzoffset = (int)difftime(mktime(&utime), now);
+		utime.tm_isdst = -1;
+		m_tzoffset = (int)difftime(mktime(&utime), now);
 	}
 	struct tm ltime;
 	ltime.tm_isdst = -1;
-	ltime.tm_year = atoi(utc_time.substr(0, 4).c_str()) - 1900;
-	ltime.tm_mon = atoi(utc_time.substr(5, 2).c_str()) - 1;
-	ltime.tm_mday = atoi(utc_time.substr(8, 2).c_str());
-	ltime.tm_hour = atoi(utc_time.substr(11, 2).c_str());
-	ltime.tm_min = atoi(utc_time.substr(14, 2).c_str());
-	ltime.tm_sec = atoi(utc_time.substr(17, 2).c_str()) + tzoffset;
-	time_t ntime = mktime(&ltime);
-	ntime--; // prevent compiler warning
-	char until[40];
+	ltime.tm_year = atoi(local_time.substr(0, 4).c_str()) - 1900;
+	ltime.tm_mon = atoi(local_time.substr(5, 2).c_str()) - 1;
+	ltime.tm_mday = atoi(local_time.substr(8, 2).c_str());
+	ltime.tm_hour = atoi(local_time.substr(11, 2).c_str());
+	ltime.tm_min = atoi(local_time.substr(14, 2).c_str());
+	ltime.tm_sec = atoi(local_time.substr(17, 2).c_str()) + m_tzoffset;
+	mktime(&ltime);
+	char until[22];
 	sprintf(until,"%04d-%02d-%02dT%02d:%02d:%02dZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,ltime.tm_hour,ltime.tm_min,ltime.tm_sec);
-	return string(until);
+	return std::string(until);
 }
 
 
