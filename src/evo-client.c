@@ -753,7 +753,7 @@ void update_dhw(DomoticzClient &dclient, map<std::string,std::string> dhwdata)
 }
 
 
-void update_zone(DomoticzClient &dclient, map<std::string,std::string> zonedata)
+void update_zone(DomoticzClient &dclient, map<std::string,std::string> zonedata, bool heating_off)
 {
 	std::string idx="";
 	if ( updatedev && (dclient.devices.find(zonedata["zoneId"]) == dclient.devices.end()) )
@@ -783,8 +783,16 @@ void update_zone(DomoticzClient &dclient, map<std::string,std::string> zonedata)
 	}
 	if (idx != "")
 	{
-		log(szLOG+" - change status of zone "+zonedata["name"]+": temperature = "+zonedata["temperature"]+", setpoint = "+zonedata["targetTemperature"]+", mode = "+zonedata["setpointMode"]+", until = "+zonedata["until"]);
-		dclient.update_zone_status(idx, zonedata["temperature"], zonedata["targetTemperature"], zonedata["setpointMode"], zonedata["until"]);
+		if (heating_off)
+		{
+			log(szLOG+" - change status of zone "+zonedata["name"]+": temperature = "+zonedata["temperature"]+", setpoint = "+zonedata["targetTemperature"]+", mode = HeatingOff, until = "+zonedata["until"]);
+			dclient.update_zone_status(idx, zonedata["temperature"], zonedata["targetTemperature"], "HeatingOff", "");
+		}
+		else
+		{
+			log(szLOG+" - change status of zone "+zonedata["name"]+": temperature = "+zonedata["temperature"]+", setpoint = "+zonedata["targetTemperature"]+", mode = "+zonedata["setpointMode"]+", until = "+zonedata["until"]);
+			dclient.update_zone_status(idx, zonedata["temperature"], zonedata["targetTemperature"], zonedata["setpointMode"], zonedata["until"]);
+		}
 	}
 }
 
@@ -888,13 +896,16 @@ void cmd_update()
 		update_dhw(dclient, dhwdata);
 	}
 
+
+	bool heating_off=(systemdata["systemMode"]=="HeatingOff");
+
 	// Update zones
 	for (std::map<int, EvohomeClient::zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
 	{
 		std::map<std::string, std::string> zonedata = evo_get_zone_data(tcs, it->first);
 		if (zonedata["until"].length() == 0)
 			zonedata["until"] = local_to_utc(eclient.get_next_switchpoint(tcs, it->first));
-		update_zone(dclient, zonedata);
+		update_zone(dclient, zonedata, heating_off);
 	}
 
 	log("Done!");
@@ -1018,7 +1029,7 @@ void cancel_temperature_override()
 			zonedata["zoneId"] = it->second.zoneId;
 			zonedata["name"] = dclient.devices[it->second.zoneId].Name;
 			zonedata["until"] = eclient.get_next_switchpoint_ex(tcs->zones[it->first].schedule, zonedata["targetTemperature"]);
-			update_zone(dclient, zonedata);
+			update_zone(dclient, zonedata, false);
 		}
 	}
 	dclient.cleanup();
