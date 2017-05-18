@@ -566,14 +566,14 @@ std::string int_to_string(int myint)
 
 std::string local_to_utc(std::string local_time)
 {
-	if (m_tzoffset == -1)
+	if (tzoffset == -1)
 	{
 		// calculate timezone offset once
-		time_t now = mytime(NULL);
+		time_t now = time(0);
 		struct tm utime;
 		gmtime_r(&now, &utime);
 		utime.tm_isdst = -1;
-		m_tzoffset = (int)difftime(mktime(&utime), now);
+		tzoffset = (int)difftime(mktime(&utime), now);
 	}
 	struct tm ltime;
 	ltime.tm_isdst = -1;
@@ -582,7 +582,7 @@ std::string local_to_utc(std::string local_time)
 	ltime.tm_mday = atoi(local_time.substr(8, 2).c_str());
 	ltime.tm_hour = atoi(local_time.substr(11, 2).c_str());
 	ltime.tm_min = atoi(local_time.substr(14, 2).c_str());
-	ltime.tm_sec = atoi(local_time.substr(17, 2).c_str()) + m_tzoffset;
+	ltime.tm_sec = atoi(local_time.substr(17, 2).c_str()) + tzoffset;
 	mktime(&ltime);
 	char until[22];
 	sprintf(until,"%04d-%02d-%02dT%02d:%02d:%02dZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,ltime.tm_hour,ltime.tm_min,ltime.tm_sec);

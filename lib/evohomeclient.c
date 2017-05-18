@@ -933,8 +933,10 @@ bool EvohomeClient::set_system_mode(std::string systemId, int mode, std::string 
 		return true;
 	return false;
 }
-
-
+bool EvohomeClient::set_system_mode(std::string systemId, int mode)
+{
+	return set_system_mode(systemId, mode, "");
+}
 bool EvohomeClient::set_system_mode(std::string systemId, std::string mode, std::string date_until)
 {
 	int i = 0;
@@ -1044,6 +1046,6 @@ bool EvohomeClient::set_dhw_mode(std::string dhwId, std::string mode, std::strin
 }
 bool EvohomeClient::set_dhw_mode(std::string systemId, std::string mode)
 {
-	return set_system_mode(systemId, mode, "");
+	return set_dhw_mode(systemId, mode, "");
 }
 
