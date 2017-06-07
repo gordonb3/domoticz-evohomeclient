@@ -511,7 +511,6 @@ map<std::string, std::string> evo_get_system_data(EvohomeClient::temperatureCont
 
 map<std::string, std::string> evo_get_dhw_data(EvohomeClient::temperatureControlSystem* tcs)
 {
-cout << "collect data for Hot water device";
 	map<std::string, std::string> ret;
 	json_object *j_dhw, *j_tmp, *j_res;
 	if (json_object_object_get_ex(tcs->status, "dhw", &j_dhw))
@@ -531,14 +530,12 @@ cout << "collect data for Hot water device";
 				ret["until"] = json_object_get_string(j_res);
 		}
 	}
-cout << "          [\x1B[32mOK\033[0m]\n";
 	return ret;
 }
 
 
 map<std::string, std::string> evo_get_zone_data(EvohomeClient::temperatureControlSystem* tcs, int zoneindex)
 {
-cout << "collect data for zone " << zoneindex;
 	map<std::string, std::string> ret;
 
 	json_object_object_foreach(tcs->zones[zoneindex].status, key, val)
@@ -555,7 +552,6 @@ cout << "collect data for zone " << zoneindex;
 			}
 		}
 	}
-cout << "          [\x1B[32mOK\033[0m]\n";
 	return ret;
 }
 
@@ -570,6 +566,8 @@ std::string int_to_string(int myint)
 
 std::string local_to_utc(std::string local_time)
 {
+	if (local_time.size() <  19)
+		return "";
 	if (tzoffset == -1)
 	{
 		// calculate timezone offset once
@@ -596,6 +594,8 @@ std::string local_to_utc(std::string local_time)
 
 std::string utc_to_local(std::string utc_time)
 {
+	if (utc_time.size() <  19)
+		return "";
 	if (tzoffset == -1)
 	{
 		// calculate timezone offset once
@@ -759,9 +759,6 @@ void update_dhw(DomoticzClient &dclient, map<std::string,std::string> dhwdata)
 
 void update_zone(DomoticzClient &dclient, map<std::string,std::string> zonedata, bool heating_off)
 {
-cout << "locate zone with evohome ID ";
-cout << zonedata["zoneId"];
-
 	std::string idx="";
 	if ( updatedev && (dclient.devices.find(zonedata["zoneId"]) == dclient.devices.end()) )
 	{
@@ -779,8 +776,6 @@ cout << zonedata["zoneId"];
 	}
 	else
 		idx = dclient.devices[zonedata["zoneId"]].idx;
-cout << "          [\x1B[32mOK\033[0m]\n";
-cout << "update zone with idx " << idx;
 	if ( (updatedev) && (idx != "") )
 	{
 		stringstream sms;
@@ -803,7 +798,6 @@ cout << "update zone with idx " << idx;
 			dclient.update_zone_status(idx, zonedata["temperature"], zonedata["targetTemperature"], zonedata["setpointMode"], zonedata["until"]);
 		}
 	}
-cout << "          [\x1B[32mOK\033[0m]\n";
 }
 
 
@@ -909,7 +903,6 @@ void cmd_update()
 
 	bool heating_off=(systemdata["systemMode"]=="HeatingOff");
 
-cout << "identify zones\n";
 	// Update zones
 	for (std::map<int, EvohomeClient::zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
 	{

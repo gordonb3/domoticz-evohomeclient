@@ -490,15 +490,15 @@ bool EvohomeClient::get_schedule(std::string zoneId)
 
 std::string EvohomeClient::get_next_switchpoint(EvohomeClient::temperatureControlSystem* tcs, int zone)
 {
-	if (tcs->zones[zone].schedule == NULL)
-		get_schedule(tcs->zones[zone].zoneId);
+	if ((tcs->zones[zone].schedule == NULL) && !get_schedule(tcs->zones[zone].zoneId))
+		return "";
 	return get_next_switchpoint(tcs->zones[zone].schedule);
 }
 
 std::string EvohomeClient::get_next_switchpoint(std::string zoneId)
 {
-	if (get_zone_by_ID(zoneId)->schedule == NULL)
-		get_schedule(zoneId);
+	if ((get_zone_by_ID(zoneId)->schedule == NULL) && !get_schedule(zoneId))
+		return "";
 	return get_next_switchpoint(get_zone_by_ID(zoneId)->schedule);
 }
 
@@ -521,28 +521,35 @@ std::string EvohomeClient::get_next_switchpoint_ex(json_object *schedule, std::s
 	int day = ltime.tm_mday;
 	std::string s_time;
 	json_object *j_week;
-	json_object_object_get_ex(schedule, "dailySchedules", &j_week);
+	if (!json_object_object_get_ex(schedule, "dailySchedules", &j_week))
+		return "";
 	int sdays = json_object_array_length(j_week);
-	int d, i;
 
-	for (d = 0; d < 7; d++)
+	int d, i;
+	bool found = false;
+
+	for (d = 0; ((d < 7) && !found); d++)
 	{
 		int wday = (ltime.tm_wday + d) % 7;
 		std::string s_wday = (std::string)weekdays[wday];
 		json_object *j_day, *j_dayname;
 // find day
-		for (i = 0; i < sdays; i++)
+		for (i = 0; ((i < sdays) && !found); i++)
 		{
 			j_day = json_object_array_get_idx(j_week, i);
 			if ( (json_object_object_get_ex(j_day, "dayOfWeek", &j_dayname)) && (strcmp(json_object_get_string(j_dayname), s_wday.c_str()) == 0) )
-				i = sdays;
+				found = true;
 		}
 
+		if (!found)
+			return "";
+
+		found = false;
 		json_object *j_list, *j_sp, *j_tim, *j_temp;
 		json_object_object_get_ex( j_day, "switchpoints", &j_list);
 
 		int l = json_object_array_length(j_list);
-		for (i = 0; i < l; i++)
+		for (i = 0; ((i < l) && !found); i++)
 		{
 			j_sp = json_object_array_get_idx(j_list, i);
 			json_object_object_get_ex(j_sp, "timeOfDay", &j_tim);
@@ -556,10 +563,7 @@ std::string EvohomeClient::get_next_switchpoint_ex(json_object *schedule, std::s
 			ltime.tm_sec = atoi(s_time.substr(6, 2).c_str());
 			time_t ntime = mktime(&ltime);
 			if (ntime > now)
-			{
-				i = l;
-				d = 7;
-			}
+				found = true;
 			else
 			{
 				json_object_object_get_ex(j_sp, "temperature", &j_temp);
@@ -567,6 +571,9 @@ std::string EvohomeClient::get_next_switchpoint_ex(json_object *schedule, std::s
 			}
 		}
 	}
+	if (!found)
+		return "";
+
 	char rdata[30];
 	sprintf(rdata,"%04d-%02d-%02dT%sZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,s_time.c_str());
 
