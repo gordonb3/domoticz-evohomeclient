@@ -952,6 +952,8 @@ void cmd_backup_and_restore_schedules()
 std::string format_time(std::string utc_time)
 {
 	struct tm ltime;
+	if (utc_time[0] == '0') // Domoticz now sinds illegal timestamp '0-00-00T00:00:00' to indicate permanent
+		return "";
 	if (utc_time[0] == '+')
 	{
 		int minutes = atoi(utc_time.substr(1).c_str());
