@@ -542,7 +542,7 @@ std::string EvohomeClient::get_next_switchpoint_ex(json_object *schedule, std::s
 		}
 
 		if (!found)
-			return "";
+			continue;
 
 		found = false;
 		json_object *j_list, *j_sp, *j_tim, *j_temp;
