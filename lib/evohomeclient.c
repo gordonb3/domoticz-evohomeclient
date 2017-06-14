@@ -651,7 +651,8 @@ bool EvohomeClient::schedules_backup(std::string filename)
 							return false;
 						json_object *j_week = json_tokener_parse(s_res.c_str());
 						json_object *j_days;
-						json_object_object_get_ex(j_week, "dailySchedules", &j_days);
+						if (!json_object_object_get_ex(j_week, "dailySchedules", &j_days))
+							j_days = json_object_new_array();
 
 						json_object *j_zonesched = json_object_new_object();
 						json_object_object_add(j_zonesched,"zoneId", j_zoneId);
@@ -674,7 +675,8 @@ bool EvohomeClient::schedules_backup(std::string filename)
 							return false;
 						json_object *j_week = json_tokener_parse(s_res.c_str());
 						json_object *j_days;
-						json_object_object_get_ex(j_week, "dailySchedules", &j_days);
+						if (!json_object_object_get_ex(j_week, "dailySchedules", &j_days))
+							j_days = json_object_new_array();
 
 						json_object *j_zonesched = json_object_new_object();
 						json_object_object_add(j_zonesched,"dhwId", j_zoneId);
