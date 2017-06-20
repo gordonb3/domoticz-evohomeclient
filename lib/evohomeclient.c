@@ -476,6 +476,32 @@ EvohomeClient::temperatureControlSystem* EvohomeClient::get_zone_temperatureCont
 }
 
 
+std::string EvohomeClient::request_next_switchpoint(std::string zoneId)
+{
+	stringstream url;
+	url << "/WebAPI/emea/api/v1/temperatureZone/" << zoneId << "/schedule/upcommingSwitchpoints?count=1";
+	std::string s_res = send_receive_data(url.str(), evoheader);
+	if (s_res[0] == '[') // got unnamed array as reply
+	{
+		s_res[0] = ' ';
+		size_t len = s_res.size();
+		len--;
+		s_res[len] = ' ';
+	}
+
+	json_object *j_sp = json_tokener_parse(s_res.c_str());
+	json_object *j_time;
+	if (json_object_object_get_ex(j_sp, "time", &j_time))
+	{
+		std::stringstream ss;
+		ss << json_object_get_string(j_time) << 'Z';
+		return ss.str();
+	}
+
+	return "";
+}
+
+
 bool EvohomeClient::get_schedule(std::string zoneId)
 {
 	stringstream url;
@@ -505,10 +531,10 @@ std::string EvohomeClient::get_next_switchpoint(std::string zoneId)
 
 std::string EvohomeClient::get_next_switchpoint(json_object *schedule)
 {
-	std::string current_temperature;
-	return get_next_switchpoint_ex(schedule, current_temperature);
+	std::string current_setpoint;
+	return get_next_switchpoint_ex(schedule, current_setpoint);
 }
-std::string EvohomeClient::get_next_switchpoint_ex(json_object *schedule, std::string &current_temperature)
+std::string EvohomeClient::get_next_switchpoint_ex(json_object *schedule, std::string &current_setpoint)
 {
 	if (schedule == NULL)
 		return "";
@@ -519,6 +545,7 @@ std::string EvohomeClient::get_next_switchpoint_ex(json_object *schedule, std::s
 	int year = ltime.tm_year;
 	int month = ltime.tm_mon;
 	int day = ltime.tm_mday;
+	int wday = ltime.tm_wday;
 	std::string s_time;
 	json_object *j_week;
 	if (!json_object_object_get_ex(schedule, "dailySchedules", &j_week))
@@ -527,20 +554,20 @@ std::string EvohomeClient::get_next_switchpoint_ex(json_object *schedule, std::s
 
 	int d, i;
 	bool found = false;
+	current_setpoint = "";
 
 	for (d = 0; ((d < 7) && !found); d++)
 	{
-		int wday = (ltime.tm_wday + d) % 7;
-		std::string s_wday = (std::string)weekdays[wday];
+		int tryday = (wday + d) % 7;
+		std::string s_tryday = (std::string)weekdays[tryday];
 		json_object *j_day, *j_dayname;
 // find day
 		for (i = 0; ((i < sdays) && !found); i++)
 		{
 			j_day = json_object_array_get_idx(j_week, i);
-			if ( (json_object_object_get_ex(j_day, "dayOfWeek", &j_dayname)) && (strcmp(json_object_get_string(j_dayname), s_wday.c_str()) == 0) )
+			if ( (json_object_object_get_ex(j_day, "dayOfWeek", &j_dayname)) && (strcmp(json_object_get_string(j_dayname), s_tryday.c_str()) == 0) )
 				found = true;
 		}
-
 		if (!found)
 			continue;
 
@@ -567,7 +594,44 @@ std::string EvohomeClient::get_next_switchpoint_ex(json_object *schedule, std::s
 			else
 			{
 				json_object_object_get_ex(j_sp, "temperature", &j_temp);
-				current_temperature = json_object_get_string(j_temp);
+				current_setpoint = json_object_get_string(j_temp);
+			}
+		}
+	}
+	if (!found)
+		return "";
+
+	if (current_setpoint.empty()) // got a direct match => current_setpoint is still empty
+	{
+		found = false;
+		for (d = 1; ((d < 7) && !found); d++)
+		{
+			int tryday = (wday - d + 7) % 7;
+			std::string s_tryday = (std::string)weekdays[tryday];
+			json_object *j_day, *j_dayname;
+
+			for (i = 0; ((i < sdays) && !found); i++)
+			{
+				j_day = json_object_array_get_idx(j_week, i);
+				if ( (json_object_object_get_ex(j_day, "dayOfWeek", &j_dayname)) && (strcmp(json_object_get_string(j_dayname), s_tryday.c_str()) == 0) )
+					found = true;
+			}
+
+			if (!found)
+				continue;
+
+			found = false;
+			json_object *j_list, *j_sp, *j_temp;
+			json_object_object_get_ex( j_day, "switchpoints", &j_list);
+
+			int l = json_object_array_length(j_list);
+			if (l > 0)
+			{
+				l--;
+				j_sp = json_object_array_get_idx(j_list, l);
+				json_object_object_get_ex(j_sp, "temperature", &j_temp);
+				current_setpoint = json_object_get_string(j_temp);
+				found = true;
 			}
 		}
 	}
@@ -594,14 +658,14 @@ bool EvohomeClient::schedules_backup(std::string filename)
 			json_object *j_loc = locations[il].installationInfo;
 			json_object *j_locId, *j_locInfo, *j_locName;
 
-			json_object_object_get_ex(j_loc, "locationInfo", &j_locInfo);
-			json_object_object_get_ex(j_locInfo, "name", &j_locName);
-			json_object_object_get_ex(j_locInfo, "locationId", &j_locId);
-			std::string s_locId = json_object_get_string(j_locId);
+			if ((!json_object_object_get_ex(j_loc, "locationInfo", &j_locInfo)) || (!json_object_object_get_ex(j_locInfo, "locationId", &j_locId)))
+				continue;
 
 			json_object *j_locsched = json_object_new_object();
+			if (json_object_object_get_ex(j_locInfo, "name", &j_locName))
+				json_object_object_add(j_locsched,"name", j_locName);
 			json_object_object_add(j_locsched,"locationId", j_locId);
-			json_object_object_add(j_locsched,"name", j_locName);
+			std::string s_locId = json_object_get_string(j_locId);
 
 			unsigned int igw;
 			for (igw = 0; igw < locations[il].gateways.size(); igw++)
@@ -609,12 +673,12 @@ bool EvohomeClient::schedules_backup(std::string filename)
 				json_object *j_gw = locations[il].gateways[igw].installationInfo;
 				json_object *j_gwId, *j_gwInfo;
 		
-				json_object_object_get_ex(j_gw, "gatewayInfo", &j_gwInfo);
-				json_object_object_get_ex(j_gwInfo, "gatewayId", &j_gwId);
-				std::string s_gwId = json_object_get_string(j_gwId);
+				if ((!json_object_object_get_ex(j_gw, "gatewayInfo", &j_gwInfo)) || (!json_object_object_get_ex(j_gwInfo, "gatewayId", &j_gwId)))
+					continue;
 
 				json_object *j_gwsched = json_object_new_object();
 				json_object_object_add(j_gwsched,"gatewayId", j_gwId);
+				std::string s_gwId = json_object_get_string(j_gwId);
 
 				unsigned int itcs;
 				for (itcs = 0; itcs < locations[il].gateways[igw].temperatureControlSystems.size(); itcs++)
@@ -622,11 +686,12 @@ bool EvohomeClient::schedules_backup(std::string filename)
 					json_object *j_tcs = locations[il].gateways[igw].temperatureControlSystems[itcs].installationInfo;
 					json_object *j_tcsId;
 			
-					json_object_object_get_ex(j_tcs, "systemId", &j_tcsId);
-					std::string s_tcsId = json_object_get_string(j_tcsId);
+					if (!json_object_object_get_ex(j_tcs, "systemId", &j_tcsId))
+						continue;
 
 					json_object *j_tcssched = json_object_new_object();
 					json_object_object_add(j_tcssched,"systemId", j_tcsId);
+					std::string s_tcsId = json_object_get_string(j_tcsId);
 
 					json_object *j_list, *j_zone;
 					json_object_object_get_ex(j_tcs, "zones", &j_list);
@@ -639,8 +704,10 @@ bool EvohomeClient::schedules_backup(std::string filename)
 					{
 						j_zone = json_object_array_get_idx(j_list, i);
 
-						json_object_object_get_ex(j_zone, "name", &j_name);
-						json_object_object_get_ex(j_zone, "zoneId", &j_zoneId);
+						if (!json_object_object_get_ex(j_zone, "zoneId", &j_zoneId))
+							continue;
+						if (!json_object_object_get_ex(j_zone, "name", &j_name))
+							j_name = json_object_new_string("unnamed zone");
 						std::string s_zoneId = json_object_get_string(j_zoneId);
 
 						url.str("");
@@ -666,7 +733,8 @@ bool EvohomeClient::schedules_backup(std::string filename)
 					json_object *j_dhw;
 					if (json_object_object_get_ex(j_tcs, "dhw", &j_dhw))
 					{
-						json_object_object_get_ex(j_zone, "dhwId", &j_zoneId);
+						if (!json_object_object_get_ex(j_zone, "dhwId", &j_zoneId))
+							continue;
 						std::string s_zoneId = json_object_get_string(j_zoneId);
 						url.str("");
 						url << "/WebAPI/emea/api/v1/domesticHotWater/" << s_zoneId << "/schedule";
