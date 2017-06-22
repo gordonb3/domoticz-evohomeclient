@@ -160,14 +160,12 @@ void parse_args(int argc, char** argv) {
 map<std::string, std::string> evo_get_system_data(EvohomeClient::temperatureControlSystem* tcs)
 {
 	map<std::string, std::string> ret;
-	json_object *j_tmp, *j_res;
-	if ( ( json_object_object_get_ex(tcs->status, "systemModeStatus", &j_tmp)) && (json_object_object_get_ex( j_tmp, "mode", &j_res)) )
-		ret["systemMode"] = json_object_get_string(j_res);
+
+	ret["systemMode"] = (*tcs->status)["systemModeStatus"]["mode"].asString();
 	ret["systemId"] = tcs->systemId;
 	if (updatedev)
 	{
-		if (json_object_object_get_ex(tcs->installationInfo, "modelType", &j_res))
-			ret["modelType"] = json_object_get_string(j_res);
+		ret["modelType"] = (*tcs->status)["modelType"].asString();
 	}
 	return ret;
 }
@@ -176,22 +174,18 @@ map<std::string, std::string> evo_get_system_data(EvohomeClient::temperatureCont
 map<std::string, std::string> evo_get_dhw_data(EvohomeClient::temperatureControlSystem* tcs)
 {
 	map<std::string, std::string> ret;
-	json_object *j_dhw, *j_tmp, *j_res;
-	if (json_object_object_get_ex(tcs->status, "dhw", &j_dhw))
+	if ((*tcs->status).isMember("dhw"))
 	{
 		ret["until"] = "";
-		if (json_object_object_get_ex(j_dhw, "dhwId", &j_res))
-			ret["dhwId"] = json_object_get_string(j_res);
-		if ( (json_object_object_get_ex(tcs->status, "temperatureStatus", &j_tmp)) && (json_object_object_get_ex( j_tmp, "temperature", &j_res)) )
-			ret["temperature"] = json_object_get_string(j_res);
-		if ( json_object_object_get_ex(tcs->status, "stateStatus", &j_tmp))
+		ret["dhwId"] = (*tcs->status)["dhw"]["dhwId"].asString();
+		ret["temperature"] = (*tcs->status)["dhw"]["temperatureStatus"]["temperature"].asString();
+		if ((*tcs->status)["dhw"].isMember("stateStatus"))
 		{
-			if (json_object_object_get_ex(j_tmp, "state", &j_res))
-				ret["state"] = json_object_get_string(j_res);
-			if (json_object_object_get_ex(j_tmp, "mode", &j_res))
-				ret["mode"] = json_object_get_string(j_res);
-			if ( (ret["mode"] == "TemporaryOverride") && (json_object_object_get_ex(j_tmp, "until", &j_res)) )
-				ret["until"] = json_object_get_string(j_res);
+
+			ret["state"] = (*tcs->status)["dhw"]["stateStatus"]["state"].asString();
+			ret["mode"] = (*tcs->status)["dhw"]["stateStatus"]["mode"].asString();
+			if (ret["mode"] == "TemporaryOverride")
+				ret["until"] = (*tcs->status)["dhw"]["stateStatus"]["until"].asString();
 		}
 	}
 	return ret;
@@ -202,20 +196,14 @@ map<std::string, std::string> evo_get_zone_data(EvohomeClient::temperatureContro
 {
 	map<std::string, std::string> ret;
 
-	json_object_object_foreach(tcs->zones[zoneindex].status, key, val)
-	{
-		if ( (strcmp(key, "zoneId") == 0) || (strcmp(key, "name") == 0) )
-		{
-			ret[key] = json_object_get_string(val);
-		}
-		else if ( (strcmp(key, "temperatureStatus") == 0) || (strcmp(key, "heatSetpointStatus") == 0) )
-		{
-			json_object_object_foreach(val, key2, val2)
-			{
-				ret[key2] = json_object_get_string(val2);
-			}
-		}
-	}
+	ret["until"] = "";
+
+	ret["zoneId"] = (*tcs->zones[zoneindex].status)["zoneId"].asString();
+	ret["temperature"] = (*tcs->zones[zoneindex].status)["temperatureStatus"]["temperature"].asString();
+	ret["targetTemperature"] = (*tcs->zones[zoneindex].status)["heatSetpointStatus"]["targetTemperature"].asString();
+	ret["setpointMode"] = (*tcs->zones[zoneindex].status)["heatSetpointStatus"]["setpointMode"].asString();
+	if (ret["setpointMode"] == "TemporaryOverride")
+		ret["until"] = (*tcs->zones[zoneindex].status)["heatSetpointStatus"]["until"].asString();
 	return ret;
 }
 

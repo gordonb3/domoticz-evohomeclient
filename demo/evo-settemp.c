@@ -166,23 +166,16 @@ map<std::string, std::string> evo_get_zone_data(EvohomeClient::temperatureContro
 {
 	map<std::string, std::string> ret;
 
-	json_object_object_foreach(tcs->zones[zoneindex].status, key, val)
-	{
-		if ( (strcmp(key, "zoneId") == 0) || (strcmp(key, "name") == 0) )
-		{
-			ret[key] = json_object_get_string(val);
-		}
-		else if ( (strcmp(key, "temperatureStatus") == 0) || (strcmp(key, "heatSetpointStatus") == 0) )
-		{
-			json_object_object_foreach(val, key2, val2)
-			{
-				ret[key2] = json_object_get_string(val2);
-			}
-		}
-	}
+	ret["until"] = "";
+
+	ret["zoneId"] = (*tcs->zones[zoneindex].status)["zoneId"].asString();
+	ret["temperature"] = (*tcs->zones[zoneindex].status)["temperatureStatus"]["temperature"].asString();
+	ret["targetTemperature"] = (*tcs->zones[zoneindex].status)["heatSetpointStatus"]["targetTemperature"].asString();
+	ret["setpointMode"] = (*tcs->zones[zoneindex].status)["heatSetpointStatus"]["setpointMode"].asString();
+	if (ret["setpointMode"] == "TemporaryOverride")
+		ret["until"] = (*tcs->zones[zoneindex].status)["heatSetpointStatus"]["until"].asString();
 	return ret;
 }
-
 
 std::string local_to_utc(std::string utc_time)
 {

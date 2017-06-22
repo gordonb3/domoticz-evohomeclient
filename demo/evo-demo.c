@@ -57,88 +57,22 @@ std::string backupfile;
 time_t now;
 int tzoffset=-1;
 
-bool createdev = false;
-bool updatedev = true;
-
-
-
-/*
- * Convert domoticz host settings into fully qualified url prefix
- */
-std::string get_domoticz_host(std::string url, std::string port)
-{
-	stringstream ss;
-	if (url.substr(0,4) != "http")
-		ss << "http://";
-	ss << url;
-	if (port.length() > 0)
-		ss << ":" << port;
-	return ss.str();
-}
-
-
-void usage(std::string mode)
-{
-	cout << "Usage: " << mode << endl;
-}
-
-
-void parse_args(int argc, char** argv) {
-	int i=1;
-	std::string word;
-	while (i < argc) {
-		word = argv[i];
-		if (word.length() > 1 && word[0] == '-' && word[1] != '-') {
-			for (size_t j=1;j<word.length();j++) {
-				if (word[j] == 'h') {
-					usage("short");
-					exit(0);
-				} else if (word[j] == 'i') {
-					createdev = true;
-				} else if (word[j] == 'v') {
-					verbose = true;
-				} else {
-					usage("badparm");
-					exit(1);
-				}
-			}
-		} else if (word == "--help") {
-			usage("long");
-			exit(0);
-		} else if (word == "--init") {
-			createdev = true;
-		} else if (word == "--verbose") {
-			verbose = true;
-		} else {
-			usage("badparm");
-			exit(1);
-		}
-		i++;
-	}
-}
-
 
 /*
  * Create an associative array with the zone information we need
  */
-std::map<std::string,std::string> evo_get_zone_data(EvohomeClient::zone zone)
+std::map<std::string,std::string> evo_get_zone_data(EvohomeClient::zone *zone)
 {
 	map<std::string,std::string> ret;
 
-	json_object_object_foreach(zone.status, key, val)
-	{
-		if ( (strcmp(key, "zoneId") == 0) || (strcmp(key, "name") == 0) )
-		{
-			ret[key] = json_object_get_string(val);
-		}
-		else if ( (strcmp(key, "temperatureStatus") == 0) || (strcmp(key, "heatSetpointStatus") == 0) )
-		{
-			json_object_object_foreach(val, key2, val2)
-			{
-				ret[key2] = json_object_get_string(val2);
-			}
-		}
-	}
+
+	ret["zoneId"] = (*zone->status)["zoneId"].asString();
+	ret["name"] = (*zone->status)["name"].asString();
+	ret["temperature"] = (*zone->status)["temperatureStatus"]["temperature"].asString();
+	ret["setpointMode"] = (*zone->status)["heatSetpointStatus"]["setpointMode"].asString();
+	ret["targetTemperature"] = (*zone->status)["heatSetpointStatus"]["targetTemperature"].asString();
+	ret["until"] = (*zone->status)["heatSetpointStatus"]["until"].asString();
+
 	return ret;
 }
 
@@ -160,63 +94,12 @@ int main(int argc, char** argv)
 
 	backupfile = BACKUP_FILE;
 	configfile = CONF_FILE;
-	parse_args(argc, argv);
 
 // set defaults
 	evoconfig["hwname"] = "evohome";
 
 // override defaults with settings from config file
 	read_evoconfig();
-
-cout << "connect to Domoticz server\n";
-	DomoticzClient dclient = DomoticzClient(get_domoticz_host(evoconfig["url"], evoconfig["port"]));
-
-	int hwid = dclient.get_hwid(HARDWARE_TYPE, evoconfig["hwname"]);
-
-	if (createdev)
-	{
-		if (hwid >= 0)
-			cout << "WARNING: Hardware device " << evoconfig["hwname"] << " already exists\n";
-		else
-			hwid = dclient.create_hardware(HARDWARE_TYPE, evoconfig["hwname"]);
-	}
-
-	if (hwid == -1)
-		exit_error(ERROR+"evohome hardware not found");
-
-	dclient.get_devices(hwid);
-
-	if (createdev)
-	{
-		int controllers = 0;
-		int dhws = 0;
-		int zones = 0;
-		for (std::map<std::string, domoticz_device>::iterator it=dclient.devices.begin(); it!=dclient.devices.end(); ++it)
-		{
-			if (it->second.SubType == CONTROLLER_SUBTYPE)
-				controllers++;
-			else if (it->second.SubType == HOTWATER_SUBTYPE)
-				dhws++;
-			else if (it->second.SubType == ZONE_SUBTYPE)
-				zones++;
-			else
-				cout << "WARNING: got device with unknown SubType '" << it->second.SubType << "'\n";
-		}
-
-		if (controllers == 0)
-			dclient.create_evohome_device(hwid, CONTROLLER_SUBTYPE_ID);
-		if (dhws == 0)
-			dclient.create_evohome_device(hwid, HOTWATER_SUBTYPE_ID);
-		int i;
-		for (i = zones; i < 12; i++)
-			dclient.create_evohome_device(hwid, ZONE_SUBTYPE_ID);
-
-		if ( (controllers == 0) || (dhws == 0) || (zones < 12) )
-			dclient.get_devices(hwid);
-	}
-	
-
-
 
 // connect to Evohome server
 cout << "connect to Evohome server\n";
@@ -261,30 +144,33 @@ cout << "retrieve Evohome installation\n";
 
 // retrieving schedules is painfully slow as we can only fetch them one zone at a time.
 // luckily schedules do not change very often, so we can use a local cache
+/*
 	if ( ! eclient.read_schedules_from_file(SCHEDULE_CACHE) )
 	{
 		if ( ! eclient.schedules_backup(SCHEDULE_CACHE) )
 			exit_error(ERROR+"failed to open schedule cache file '"+SCHEDULE_CACHE+"'");
 		eclient.read_schedules_from_file(SCHEDULE_CACHE);
 	}
-
-
+*/
+//eclient.read_schedules_from_file(SCHEDULE_CACHE);
 
 // start demo output
-	cout << "\nModel Type = " << eclient.json_get_val(tcs->installationInfo, "modelType") << endl;
-	cout << "System ID = " << eclient.json_get_val(tcs->installationInfo, "systemId") << endl;
-	cout << "System mode = " << eclient.json_get_val(tcs->status, "systemModeStatus", "mode") << endl;
+	cout << "\nModel Type = " << (*tcs->installationInfo)["modelType"] << endl;
+	cout << "System ID = " << (*tcs->installationInfo)["systemId"] << endl;
+	cout << "System mode = " << (*tcs->status)["systemModeStatus"]["mode"] << endl;
 
 	cout << endl;
 
-	int newzone = 0;
-	cout << "idx    ID         temp    mode              setpoint   until                   name\n";
-	for (std::map<int, EvohomeClient::zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
+	std::string lastzone = "";
+	cout << "  ID       temp      mode           setpoint      until                name\n";
+	for (std::vector<EvohomeClient::zone>::size_type i = 0; i < tcs->zones.size(); ++i)
 	{
-		std::map<std::string,std::string> zone = evo_get_zone_data(it->second);
+		std::map<std::string,std::string> zone = evo_get_zone_data(&tcs->zones[i]);
 		if (zone["until"].length() == 0)
-			zone["until"] = eclient.get_next_switchpoint(tcs, it->first);
+			zone["until"] = eclient.get_next_switchpoint(zone["zoneId"]);
 		else
+//		if (zone["until"].length() > 0)
+
 		{
 			// this is stupid: Honeywell is mixing UTC and localtime in their returns
 			// for display we need to convert overrides to localtime
@@ -308,44 +194,32 @@ cout << "retrieve Evohome installation\n";
 			zone["until"] = string(until);
 		}
 
-		if (dclient.devices.find(zone["zoneId"]) == dclient.devices.end())
-		{
-			while ( (dclient.devices.find(int_to_string(newzone)) != dclient.devices.end()) && (dclient.devices[int_to_string(newzone)].SubType != "Zone") )
-				newzone++;
-			if (dclient.devices.find(int_to_string(newzone)) == dclient.devices.end())
-				cerr << "WARNING: Can't register new Evohome zone because you have no free zones available for this hardware in Domoticz\n";
-			else
-				cout << dclient.devices[int_to_string(newzone)].idx << "* => " << zone["zoneId"];
-			newzone++;
-		}
-		else
-			cout << dclient.devices[zone["zoneId"]].idx << "  => " << zone["zoneId"];
-		cout << " => " << zone["temperature"] ;
+		cout << zone["zoneId"];
+		cout << " => " << zone["temperature"];
 		cout << " => " << zone["setpointMode"];
 		cout << " => " << zone["targetTemperature"];
 		cout << " => " << zone["until"];
 		cout << " => " << zone["name"];
 		cout << endl;
+
+		lastzone = zone["zoneId"];
 	}
 
 	cout << endl;
 
 
-	cout << json_object_to_json_string_ext(eclient.get_zone_by_ID("1234567")->installationInfo,JSON_C_TO_STRING_PRETTY) << endl << endl << endl;
-	cout << json_object_to_json_string_ext(eclient.get_zone_by_ID("1234567")->status,JSON_C_TO_STRING_PRETTY) << endl;
+	EvohomeClient::zone* myzone = eclient.get_zone_by_ID(lastzone);
+	cout << "\nDump of installationinfo for zone" << lastzone << "\n";
+	cout << (*myzone->installationInfo).toStyledString() << "\n";
+	cout << "\nDump of statusinfo for zone" << lastzone << "\n";
+	cout << (*myzone->status).toStyledString() << "\n";
 
+
+	cout << "\nDump of full installationinfo\n";
+	cout << eclient.j_fi.toStyledString() << "\n";
 
 	eclient.cleanup();
-	dclient.cleanup();
 
-
-
-/*
-// Evohome v2 API
-	EvohomeClientV2 ev2client = EvohomeClientV2(evoconfig["usr"],evoconfig["pw"]);
-	ev2client.full_installation();
-	ev2client.cleanup();
-*/
 	return 0;
 }
 

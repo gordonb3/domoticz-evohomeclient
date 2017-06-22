@@ -12,6 +12,7 @@
 #include <sstream>
 #include <map>
 #include <cstring>
+#include "../evohomeclient/evohomeclient.h"
 
 
 #ifndef CONF_FILE

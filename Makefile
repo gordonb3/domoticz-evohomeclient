@@ -22,8 +22,8 @@ evo-update: demo/evo-update.o $(EV_OBJ) $(DZ_OBJ)
 evo-schedule-backup: demo/evo-schedule-backup.o $(EV_OBJ)
 	$(CC) demo/evo-schedule-backup.o $(EV_OBJ) $(LDFLAGS) -o evo-schedule-backup
 
-evo-setmode: demo/evo-setmode.o evohomeclient/evohomeclient.o evohomeclient/webclient.o
-	$(CC) demo/evo-setmode.o evohomeclient/evohomeclient.o evohomeclient/webclient.o $(LDFLAGS) -o evo-setmode
+evo-setmode: demo/evo-setmode.o $(EV_OBJ)
+	$(CC) demo/evo-setmode.o $(EV_OBJ) $(LDFLAGS) -o evo-setmode
 
 evo-settemp: demo/evo-settemp.o $(EV_OBJ) $(DZ_OBJ)
 	$(CC) demo/evo-settemp.o $(EV_OBJ) $(DZ_OBJ) $(LDFLAGS) -o evo-settemp

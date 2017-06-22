@@ -10,9 +10,9 @@
 #ifndef _EvohomeClient
 #define _EvohomeClient
 
-//#include <string>
 #include "jsoncpp/json.h"
 #include <map>
+#include <string>
 
 
 class EvohomeClient

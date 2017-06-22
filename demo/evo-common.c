@@ -7,9 +7,12 @@
  *
  */
 
+#include <cstdlib>
+#include <string>
 #include <iostream>
 #include <map>
 #include <time.h>
+
 #include "../evohomeclient/evohomeclient.h"
 
 #ifndef LOCKFILE
