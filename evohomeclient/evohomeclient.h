@@ -31,8 +31,8 @@ class EvohomeClient
 	std::string put_receive_data(std::string url, std::string postdata, curl_slist *header);
 
 	void init();
-	void login(std::string user, std::string password);
-	void user_account();
+	bool login(std::string user, std::string password);
+	bool user_account();
 
 	void get_gateways(int location);
 	void get_temperatureControlSystems(int location, int gateway);

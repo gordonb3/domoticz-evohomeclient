@@ -12,6 +12,7 @@
 #include <ctime>
 #include "webclient.h"
 #include "evohomeclient.h"
+#include "jsoncpp/json.h"
 
 
 #define EVOHOME_HOST "https://tccna.honeywell.com"
@@ -92,31 +93,16 @@ std::string EvohomeClient::put_receive_data(std::string url, std::string postdat
  *									*
  ************************************************************************/
 
-void EvohomeClient::login(std::string user, std::string password)
+bool EvohomeClient::login(std::string user, std::string password)
 {
 	auth_info.clear();
 	struct curl_slist *lheader = NULL;
 	lheader = curl_slist_append(lheader,"Authorization: Basic YjAxM2FhMjYtOTcyNC00ZGJkLTg4OTctMDQ4YjlhYWRhMjQ5OnRlc3Q=");
 	lheader = curl_slist_append(lheader,"Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
-//	lheader = curl_slist_append(lheader,"content-type: application/json");
 	lheader = curl_slist_append(lheader,"charsets: utf-8");
 
 	stringstream pdata;
 
-// json does not work - server responds that grant_type 'password' is not supported :~
-/*
-	pdata << "{ ";
-	pdata << "'installationInfo-Type': 'application/x-www-form-urlencoded;charset=utf-8'";
-	pdata << ", 'Host': 'rs.alarmnet.com/'";
-	pdata << ", 'Cache-Control': 'no-store% o-cache'";
-	pdata << ", 'Pragma': 'no-cache'";
-	pdata << ", 'grant_type': 'password'";
-	pdata << ", 'scope': 'EMEA-V1-Basic MEA-V1-Anonymous EMEA-V1-Get-Current-User-Account'";
-	pdata << ", 'Username': '" << user << "'";
-	pdata << ", 'Password': '" << password << "'";
-	pdata << ", 'Connection': 'Keep-Alive'";
-	pdata << " }";
-*/
 	pdata << "installationInfo-Type=application%2Fx-www-form-urlencoded;charset%3Dutf-8";
 	pdata << "&Host=rs.alarmnet.com%2F";
 	pdata << "&Cache-Control=no-store%20no-cache";
@@ -149,44 +135,62 @@ void EvohomeClient::login(std::string user, std::string password)
 		exit(1);
 	}
 
-	json_object *j_ret = json_tokener_parse(s_res.c_str());
-	json_object *j_msg;
-	if ( (json_object_object_get_ex(j_ret, "error", &j_msg)) || (json_object_object_get_ex(j_ret, "message", &j_msg)) )
+	if (s_res[0] == '[') // got unnamed array as reply
 	{
-		cout << "Login to Evohome server failed - server responds: " << json_object_get_string(j_msg) << endl;
-		web_connection_cleanup("evohome");
-		exit(1);
+		s_res[0] = ' ';
+		size_t len = s_res.size();
+		len--;
+		s_res[len] = ' ';
 	}
 
-	json_object_object_foreach(j_ret, key, val)
-	{
-		auth_info[key] = json_object_get_string(val);
-	}
+	Json::Value j_login;
+	Json::Reader jReader;
+	if (!jReader.parse(s_res.c_str(), j_login))
+		return false;
 
-	stringstream atoken;
-	atoken << "Authorization: bearer " << auth_info["access_token"];
+	std::string szError = "";
+	if (j_login.isMember("error"))
+		szError = j_login["error"].asString();
+	if (j_login.isMember("message"))
+		szError = j_login["message"].asString();
+	if (!szError.empty())
+		return false;
+
+
+	std::stringstream atoken;
+	atoken << "Authorization: bearer " << j_login["access_token"].asString();
+
 	evoheader = curl_slist_append(evoheader,atoken.str().c_str());
 	evoheader = curl_slist_append(evoheader,"applicationId: b013aa26-9724-4dbd-8897-048b9aada249");
 	evoheader = curl_slist_append(evoheader,"accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
 	evoheader = curl_slist_append(evoheader,"content-type: application/json");
 	evoheader = curl_slist_append(evoheader,"charsets: utf-8");
 
-	user_account();
+	return user_account();
 }
 
 
 /* 
  * Retrieve evohome user info
  */
-void EvohomeClient::user_account()
+bool EvohomeClient::user_account()
 {
 	account_info.clear();
 	std::string s_res = send_receive_data("/WebAPI/emea/api/v1/userAccount", evoheader);
-	json_object *j_ret = json_tokener_parse(s_res.c_str());
-	json_object_object_foreach(j_ret, key, val)
+	if (s_res[0] == '[') // got unnamed array as reply
 	{
-		account_info[key] = json_object_get_string(val);
+		s_res[0] = ' ';
+		size_t len = s_res.size();
+		len--;
+		s_res[len] = ' ';
 	}
+	Json::Value j_account;
+	Json::Reader jReader;
+	if (!jReader.parse(s_res.c_str(), j_account) || !j_account.isMember("userId"))
+		return false;
+
+	account_info["userId"] = j_account["userId"].asString();
+	return true;
 }
 
 
