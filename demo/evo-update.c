@@ -199,6 +199,7 @@ map<std::string, std::string> evo_get_zone_data(EvohomeClient::temperatureContro
 	ret["until"] = "";
 
 	ret["zoneId"] = (*tcs->zones[zoneindex].status)["zoneId"].asString();
+	ret["name"] = (*tcs->zones[zoneindex].status)["name"].asString();
 	ret["temperature"] = (*tcs->zones[zoneindex].status)["temperatureStatus"]["temperature"].asString();
 	ret["targetTemperature"] = (*tcs->zones[zoneindex].status)["heatSetpointStatus"]["targetTemperature"].asString();
 	ret["setpointMode"] = (*tcs->zones[zoneindex].status)["heatSetpointStatus"]["setpointMode"].asString();

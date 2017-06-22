@@ -735,7 +735,7 @@ bool EvohomeClient::schedules_backup(std::string filename)
 			j_sched[s_locId] = j_locsched;
 		}
 
-		myfile << j_sched.toStyledString();
+		myfile << j_sched.toStyledString() << "\n";
 		myfile.close();
 		return true;
 	}
