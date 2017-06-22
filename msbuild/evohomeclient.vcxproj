@@ -103,18 +103,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="lib\base64.c" />
-    <ClCompile Include="lib\domoticzclient.c" />
-    <ClCompile Include="lib\evohomeclient.c" />
-    <ClCompile Include="lib\evohomeclientv2.c" />
-    <ClCompile Include="lib\webclient.c" />
-    <ClCompile Include="src\evo-client.c" />
+    <ClCompile Include="domoticzclient\base64.c" />
+    <ClCompile Include="domoticzclient\domoticzclient.c" />
+    <ClCompile Include="evohomeclient\evohomeclient.c" />
+    <ClCompile Include="evohomeclient\evohomeoldclient.c" />
+    <ClCompile Include="evohomeclient\webclient.c" />
+    <ClCompile Include="app\evo-client\evo-client.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="lib\base64.h" />
-    <ClInclude Include="lib\domoticzclient.h" />
-    <ClInclude Include="lib\evohomeclient.h" />
-    <ClInclude Include="lib\webclient.h" />
+    <ClInclude Include="domoticzclient\base64.h" />
+    <ClInclude Include="domoticzclient\domoticzclient.h" />
+    <ClInclude Include="evohomeclient\evohomeclient.h" />
+    <ClInclude Include="evohomeclient\webclient.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

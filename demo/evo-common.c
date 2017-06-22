@@ -10,7 +10,7 @@
 #include <iostream>
 #include <map>
 #include <time.h>
-#include "../lib/evohomeclient.h"
+#include "../evohomeclient/evohomeclient.h"
 
 #ifndef LOCKFILE
 #define LOCKFILE "/tmp/evo-noup.tmp"

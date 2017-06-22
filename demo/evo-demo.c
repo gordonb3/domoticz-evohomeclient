@@ -13,9 +13,9 @@
 #include <map>
 #include <cstring>
 #include <time.h>
-#include "../lib/domoticzclient.h"
-#include "../lib/evohomeclient.h"
-#include "../lib/evohomeoldclient.h"
+#include "../domoticzclient/domoticzclient.h"
+#include "../evohomeclient/evohomeclient.h"
+#include "../evohomeclient/evohomeoldclient.h"
 
 #ifndef CONF_FILE
 #define CONF_FILE "evoconfig"

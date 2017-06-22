@@ -14,8 +14,8 @@
 #include <cstring>
 #include <time.h>
 #include <stdlib.h>
-#include "../lib/domoticzclient.h"
-#include "../lib/evohomeclient.h"
+#include "../domoticzclient/domoticzclient.h"
+#include "../evohomeclient/evohomeclient.h"
 
 
 #ifndef CONF_FILE
