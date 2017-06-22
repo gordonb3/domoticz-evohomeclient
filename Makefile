@@ -1,6 +1,6 @@
 CC      = $(CROSS_COMPILE)g++
 CFLAGS  +=  -c -Wall $(EXTRAFLAGS)
-LDFLAGS +=  -lcurl -ljson-c
+LDFLAGS +=  -lcurl
 DZ_OBJ  = $(patsubst %.c,%.o,$(wildcard domoticzclient/*.c))
 EV_OBJ  = $(patsubst %.c,%.o,$(wildcard evohomeclient/*.c)) $(patsubst %.cpp,%.o,$(wildcard evohomeclient/jsoncpp/*.cpp))
 DEPS    = $(wildcard app/evo-client/*.h) $(wildcard evohomeclient/*.h) $(wildcard evohomeclient/jsoncpp/*.h) $(wildcard domoticzclient/*.h) $(wildcard demo/*.h)

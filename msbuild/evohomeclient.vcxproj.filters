@@ -33,6 +33,15 @@
     <ClCompile Include="app\evo-client\evo-client.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="evohomeclient\jsoncpp\json_writer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="evohomeclient\jsoncpp\json_value.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="evohomeclient\jsoncpp\json_reader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="domoticzclient\base64.h">
@@ -45,6 +54,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="evohomeclient\webclient.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="evohomeclient\jsoncpp\json.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

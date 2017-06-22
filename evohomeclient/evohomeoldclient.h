@@ -15,40 +15,36 @@
 #include <sstream>
 #include <string>
 #include <curl/curl.h>
-#include <json-c/json.h>
+#include "jsoncpp/json.h"
 #include <map>
 
 
 class EvohomeOldClient
 {
 	private:
-	std::map<std::string,std::string> auth_info;
-	std::map<std::string,std::string> account_info;
-	struct curl_slist *evoheader = NULL;
-
 	void init();
-	void login(std::string user, std::string password);
+	bool login(std::string user, std::string password);
 
+	std::string v1uid;
+	struct curl_slist *evoheader;
 
 	public:
 	struct location
 	{
 		std::string locationId;
-		json_object *installationInfo;
-		json_object *status;
+		Json::Value *installationInfo;
+		Json::Value *status;
 	};
 
-	std::map<int, location> locations;
-	std::map<std::string,std::string> sys_info;
-	std::map<std::string,std::string> schedule;
-
 	EvohomeOldClient(std::string user, std::string password);
-	void cleanup();
+	bool full_installation();
 
 	std::string send_receive_data(std::string url, curl_slist *header);
 	std::string send_receive_data(std::string url, std::string postdata, curl_slist *header);
+	void cleanup();
 
-	void full_installation();
+	Json::Value j_fi;
+	std::map<int, location> locations;
 };
 
 #endif

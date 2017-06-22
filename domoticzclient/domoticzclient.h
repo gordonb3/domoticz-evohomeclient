@@ -15,19 +15,8 @@
 #include <sstream>
 #include <string>
 #include <curl/curl.h>
-#include <json-c/json.h>
 #include <map>
-
-
-struct domoticz_device
-{
-	public:
-	std::string SubType;
-	std::string idx;
-	std::string Name;
-	std::string ID;
-	std::string Temp;
-};
+#include "../evohomeclient/jsoncpp/json.h"
 
 class DomoticzClient
 {
@@ -42,7 +31,16 @@ class DomoticzClient
 
 
 	public:
-	std::map<std::string,domoticz_device> devices;
+	struct device
+	{
+		std::string SubType;
+		std::string idx;
+		std::string Name;
+		std::string ID;
+		std::string Temp;
+	};
+
+	std::map<std::string,device> devices;
 
 	DomoticzClient(std::string host);
 	void cleanup();

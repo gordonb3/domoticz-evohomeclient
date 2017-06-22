@@ -11,7 +11,7 @@ on resources. And slow. Of course, if you like the lib you can use it for any ot
 
 ## Demo
 
-There are several (simple) demos included in this project that show how the library can be used. Feel free to use whatever you like from these sources to build your own project using this library. Run ` make demo ` to build en check out these demos.
+There are several (simple) demos included in this project that show how the library can be used. Feel free to use whatever you like from these sources to build your own project using this library. Run ` make demo ` to build and check out these demos.
 
 ## Implementation
 
@@ -30,22 +30,22 @@ These are actually the default values if you are not on Windows. As of version 1
 
 ## Prerequisites for building the Evohome client for Domoticz yourself
 
-A computer running Domoticz of course! If you compile your own beta versions of Domoticz you should be all set already for building this client. If not, you'll need a C++ compiler and supporting developer libraries json-c and curl with ssl support. For Debian based systems such as Raspbian this should get you going:
+A computer running Domoticz of course! If you compile your own beta versions of Domoticz you should be all set already for building this client. If not, you'll need a C++ compiler and supporting developer library curl with ssl support. For Debian based systems such as Raspbian this should get you going:
 
     apt-get install build-essential
-    apt-get install json-c-dev libcurl4-openssl-dev
+    apt-get install libcurl4-openssl-dev
 
 
 ## Binaries
 
 Scared about building yourself? I'm providing prebuilt binaries for the following systems:
 
-1. [Windows 32bit]( ../../releases/download/1.2.3/evo-client-win-x86-1.2.3.zip )
-1. [Linux 32bit]( ../../releases/download/1.2.3/evo-client-linux-x86-1.2.3.tar.gz )
-1. [Linux 64bit]( ../../releases/download/1.2.3/evo-client-linux-x64-1.2.3.tar.gz )
-1. [Linux armv5te]( ../../releases/download/1.2.3/evo-client-linux-armv5te-1.2.3.tar.gz )<br>
+1. [Windows 32bit]( ../../releases/download/1.3.0/evo-client-win-x86-1.3.0.zip )
+1. [Linux 32bit]( ../../releases/download/1.3.0/evo-client-linux-x86-1.3.0.tar.gz )
+1. [Linux 64bit]( ../../releases/download/1.3.0/evo-client-linux-x64-1.3.0.tar.gz )
+1. [Linux armv5te]( ../../releases/download/1.3.0/evo-client-linux-armv5te-1.3.0.tar.gz )<br>
 (e.g. Excito B3, SheevaPlug, Linksys NSLU2, QNAP TS109/209/409, ...)
-1. [Linux armv7l]( ../../releases/download/1.2.3/evo-client-linux-armv7l-1.2.3.tar.gz ) !!! Untested<br>
+1. [Linux armv7l]( ../../releases/download/1.3.0/evo-client-linux-armv7l-1.3.0.tar.gz ) !!! Untested<br>
 (e.g. Rpi2|3 32bit)
 
 

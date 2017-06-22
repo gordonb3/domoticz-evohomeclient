@@ -21,6 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{246EB9F1-CCF3-44AF-B984-563447402A96}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
+    <ProjectName>evo-client</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -109,12 +110,16 @@
     <ClCompile Include="evohomeclient\evohomeoldclient.c" />
     <ClCompile Include="evohomeclient\webclient.c" />
     <ClCompile Include="app\evo-client\evo-client.c" />
+    <ClCompile Include="evohomeclient\jsoncpp\json_writer.cpp" />
+    <ClCompile Include="evohomeclient\jsoncpp\json_value.cpp" />
+    <ClCompile Include="evohomeclient\jsoncpp\json_reader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="domoticzclient\base64.h" />
     <ClInclude Include="domoticzclient\domoticzclient.h" />
     <ClInclude Include="evohomeclient\evohomeclient.h" />
     <ClInclude Include="evohomeclient\webclient.h" />
+    <ClInclude Include="evohomeclient\jsoncpp\json.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
