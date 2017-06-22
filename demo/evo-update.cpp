@@ -53,7 +53,7 @@
 using namespace std;
 
 // Include common functions
-#include "evo-common.c"
+#include "evo-common.cpp"
 
 
 time_t now;
@@ -300,7 +300,7 @@ void get_evohome_devices(DomoticzClient &dclient, int hwid)
 		int controllers = 0;
 		int dhws = 0;
 		int zones = 0;
-		for (std::map<std::string, domoticz_device>::iterator it=dclient.devices.begin(); it!=dclient.devices.end(); ++it)
+		for (std::map<std::string, DomoticzClient::device>::iterator it=dclient.devices.begin(); it!=dclient.devices.end(); ++it)
 		{
 			if (it->second.SubType == CONTROLLER_SUBTYPE)
 				controllers++;

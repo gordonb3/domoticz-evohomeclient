@@ -1,8 +1,8 @@
 CC      = $(CROSS_COMPILE)g++
 CFLAGS  +=  -c -Wall $(EXTRAFLAGS)
 LDFLAGS +=  -lcurl
-DZ_OBJ  = $(patsubst %.c,%.o,$(wildcard domoticzclient/*.c))
-EV_OBJ  = $(patsubst %.c,%.o,$(wildcard evohomeclient/*.c)) $(patsubst %.cpp,%.o,$(wildcard evohomeclient/jsoncpp/*.cpp))
+DZ_OBJ  = $(patsubst %.cpp,%.o,$(wildcard domoticzclient/*.cpp))
+EV_OBJ  = $(patsubst %.cpp,%.o,$(wildcard evohomeclient/*.cpp)) $(patsubst %.cpp,%.o,$(wildcard evohomeclient/jsoncpp/*.cpp))
 DEPS    = $(wildcard app/evo-client/*.h) $(wildcard evohomeclient/*.h) $(wildcard evohomeclient/jsoncpp/*.h) $(wildcard domoticzclient/*.h) $(wildcard demo/*.h)
 
 
@@ -28,11 +28,11 @@ evo-setmode: demo/evo-setmode.o $(EV_OBJ)
 evo-settemp: demo/evo-settemp.o $(EV_OBJ) $(DZ_OBJ)
 	$(CC) demo/evo-settemp.o $(EV_OBJ) $(DZ_OBJ) $(LDFLAGS) -o evo-settemp
 
-%.o: %.c $(DEP)
+%.o: %.cpp $(DEP)
 	$(CC) $(CFLAGS) $(EXTRAFLAGS) $< -o $@
 
 distclean: clean
 
 clean:
-	rm -f $(OBJ) $(wildcard app/evo-client/*.o) $(wildcard demo/*.o) evo-demo evo-update evo-schedule-backup evo-setmode evo-settemp evo-client
+	rm -f $(EV_OBJ) $(DZ_OBJ) $(wildcard app/evo-client/*.o) $(wildcard demo/*.o) evo-demo evo-update evo-schedule-backup evo-setmode evo-settemp evo-client
 

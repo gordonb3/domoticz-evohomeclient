@@ -42,7 +42,7 @@
 using namespace std;
 
 // Include common functions
-#include "evo-common.c"
+#include "evo-common.cpp"
 
 
 
