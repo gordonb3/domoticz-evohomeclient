@@ -10,22 +10,17 @@
 #ifndef _EvohomeClient
 #define _EvohomeClient
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <curl/curl.h>
-#include <json-c/json.h>
+//#include <string>
+#include "jsoncpp/json.h"
 #include <map>
 
 
 class EvohomeClient
 {
 	private:
-	std::map<std::string,std::string> auth_info;
 	std::map<std::string,std::string> account_info;
-	struct curl_slist *evoheader;
 
+	struct curl_slist *evoheader;
 	std::string send_receive_data(std::string url, curl_slist *header);
 	std::string send_receive_data(std::string url, std::string postdata, curl_slist *header);
 	std::string put_receive_data(std::string url, std::string postdata, curl_slist *header);
@@ -46,9 +41,10 @@ class EvohomeClient
 		std::string gatewayId;
 		std::string systemId;
 		std::string zoneId;
-		json_object *installationInfo;
-		json_object *status;
-		json_object *schedule;
+		Json::Value *installationInfo;
+		Json::Value *status;
+		Json::Value schedule;
+		std::string hdtemp;
 	};
 
 	struct temperatureControlSystem
@@ -56,8 +52,8 @@ class EvohomeClient
 		std::string locationId;
 		std::string gatewayId;
 		std::string systemId;
-		json_object *installationInfo;
-		json_object *status;
+		Json::Value *installationInfo;
+		Json::Value *status;
 		std::map<int, zone> zones;
 	};
 
@@ -65,8 +61,8 @@ class EvohomeClient
 	{
 		std::string locationId;
 		std::string gatewayId;
-		json_object *installationInfo;
-		json_object *status;
+		Json::Value *installationInfo;
+		Json::Value *status;
 		std::map<int, temperatureControlSystem> temperatureControlSystems;
 	};
 
@@ -74,12 +70,15 @@ class EvohomeClient
 	struct location
 	{
 		std::string locationId;
-		json_object *installationInfo;
-		json_object *status;
+		Json::Value *installationInfo;
+		Json::Value *status;
 		std::map<int, gateway> gateways;
 	};
 
 	std::map<int, location> locations;
+	Json::Value j_fi;
+	Json::Value j_stat;
+
 
 	EvohomeClient(std::string user, std::string password);
 	void cleanup();
@@ -102,26 +101,21 @@ class EvohomeClient
 	bool schedules_restore(std::string filename);
 	bool read_schedules_from_file(std::string filename);
 	bool get_schedule(std::string zoneId);
-	bool set_schedule(std::string zoneId, std::string zoneType, json_object *schedule);
-	bool set_zone_schedule(std::string zoneId, json_object *schedule);
-	bool set_dhw_schedule(std::string zoneId, json_object *schedule);
+	bool set_schedule(std::string zoneId, std::string zoneType, Json::Value *schedule);
+	bool set_zone_schedule(std::string zoneId, Json::Value *schedule);
+	bool set_dhw_schedule(std::string zoneId, Json::Value *schedule);
 
 	std::string get_next_switchpoint(temperatureControlSystem* tcs, int zone);
-	std::string get_next_switchpoint(std::string zoneId);
 	std::string get_next_switchpoint(zone* hz);
-	std::string get_next_switchpoint(json_object *schedule);
-	std::string get_next_switchpoint_ex(json_object *schedule, std::string &current_setpoint);
+	std::string get_next_switchpoint(std::string zoneId);
+	std::string get_next_switchpoint(Json::Value &schedule);
+	std::string get_next_switchpoint_ex(Json::Value &schedule, std::string &current_setpoint);
 
 	bool set_system_mode(std::string systemId, int mode, std::string date_until);
 	bool set_system_mode(std::string systemId, int mode);
 
 	bool set_system_mode(std::string systemId, std::string mode, std::string date_until);
 	bool set_system_mode(std::string systemId, std::string mode);
-
-	std::string json_get_val(std::string s_json, std::string key);
-	std::string json_get_val(json_object *j_json, std::string key);
-	std::string json_get_val(std::string s_json, std::string key1, std::string key2);
-	std::string json_get_val(json_object *j_json, std::string key1, std::string key2);
 
 	bool set_temperature(std::string zoneId, std::string temperature, std::string time_until);
 	bool set_temperature(std::string zoneId, std::string temperature);
