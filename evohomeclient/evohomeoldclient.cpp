@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
  *
- * Json client for Old Evohome API
+ * Json client for 'Old' US Evohome API
  *
  *
  * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
@@ -10,6 +10,8 @@
 #include <cmath>
 #include <cstring>
 #include <ctime>
+#include <iostream>
+#include <sstream>
 #include "webclient.h"
 #include "evohomeoldclient.h"
 
@@ -53,14 +55,13 @@ void EvohomeOldClient::cleanup()
 /*
  * Execute web query
  */
-std::string EvohomeOldClient::send_receive_data(std::string url, curl_slist *header)
+std::string EvohomeOldClient::send_receive_data(std::string url, std::vector<std::string> &header)
 {
 	return send_receive_data(url, "", header);
 }
 
-std::string EvohomeOldClient::send_receive_data(std::string url, std::string postdata, curl_slist *header)
+std::string EvohomeOldClient::send_receive_data(std::string url, std::string postdata, std::vector<std::string> &header)
 {
-
 	std::stringstream ss_url;
 	ss_url << EVOHOME_HOST << url;
 	return web_send_receive_data("old_evohome", ss_url.str(), postdata, header);
@@ -79,9 +80,9 @@ std::string EvohomeOldClient::send_receive_data(std::string url, std::string pos
  */
 bool EvohomeOldClient::login(std::string user, std::string password)
 {
-	struct curl_slist *lheader = NULL;
-	lheader = curl_slist_append(lheader,"Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
-	lheader = curl_slist_append(lheader,"content-type: application/json");
+	std::vector<std::string> lheader;
+	lheader.push_back("Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
+	lheader.push_back("content-type: application/json");
 
 	std::stringstream pdata;
 	pdata << "{'Username': '" << user << "', 'Password': '" << password << "'";
@@ -141,12 +142,11 @@ bool EvohomeOldClient::login(std::string user, std::string password)
 	atoken << "sessionId: " << sessionId;
 	v1uid = j_login["userInfo"]["userID"].asString();
 
-	evoheader = NULL;
-	evoheader = curl_slist_append(evoheader,atoken.str().c_str());
-	evoheader = curl_slist_append(evoheader,"applicationId: 91db1612-73fd-4500-91b2-e63b069b185c");
-	evoheader = curl_slist_append(evoheader,"Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
+	evoheader.clear();
+	evoheader.push_back(atoken.str());
+	evoheader.push_back("applicationId: 91db1612-73fd-4500-91b2-e63b069b185c");
+	evoheader.push_back("Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
 
-	curl_slist_free_all(lheader);
 	return true;
 }
 

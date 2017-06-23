@@ -10,22 +10,20 @@
 #ifndef _EvohomeClient
 #define _EvohomeClient
 
-#include "jsoncpp/json.h"
 #include <map>
+#include <vector>
 #include <string>
-
-#include <curl/curl.h>
-
+#include "jsoncpp/json.h"
 
 class EvohomeClient
 {
 	private:
 	std::map<std::string,std::string> account_info;
 
-	struct curl_slist *evoheader;
-	std::string send_receive_data(std::string url, curl_slist *header);
-	std::string send_receive_data(std::string url, std::string postdata, curl_slist *header);
-	std::string put_receive_data(std::string url, std::string postdata, curl_slist *header);
+	std::vector<std::string> evoheader;
+	std::string send_receive_data(std::string url, std::vector<std::string> &header);
+	std::string send_receive_data(std::string url, std::string postdata, std::vector<std::string> &header);
+	std::string put_receive_data(std::string url, std::string putdata, std::vector<std::string> &header);
 
 	void init();
 	bool user_account();

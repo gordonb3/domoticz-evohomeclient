@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Gordon Bos <gordon@bosvangennip.nl> All rights reserved.
  *
- * Json client for Old Evohome API
+ * Json client for 'Old' US Evohome API
  *
  *
  * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
@@ -10,13 +10,10 @@
 #ifndef _EvohomeOldClient
 #define _EvohomeOldClient
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <curl/curl.h>
-#include "jsoncpp/json.h"
 #include <map>
+#include <vector>
+#include <string>
+#include "jsoncpp/json.h"
 
 
 class EvohomeOldClient
@@ -24,11 +21,11 @@ class EvohomeOldClient
 	private:
 	void init();
 
-	std::string send_receive_data(std::string url, curl_slist *header);
-	std::string send_receive_data(std::string url, std::string postdata, curl_slist *header);
+	std::string send_receive_data(std::string url, std::vector<std::string> &header);
+	std::string send_receive_data(std::string url, std::string postdata, std::vector<std::string> &header);
 
 	std::string v1uid;
-	struct curl_slist *evoheader;
+	struct std::vector<std::string> evoheader;
 
 	public:
 	struct location

@@ -11,12 +11,13 @@
 #define _WebClient
 
 #include <string>
-#include <curl/curl.h>
+//#include <curl/curl.h>
 #include <map>
+#include <vector>
 
-std::string web_send_receive_data(std::string connection, std::string url, curl_slist *header);
-std::string web_send_receive_data(std::string connection, std::string url, std::string postdata, curl_slist *header);
-std::string web_send_receive_data(std::string connection, std::string url, std::string postdata, curl_slist *header, std::string method);
+std::string web_send_receive_data(std::string connection, std::string url, std::vector<std::string> &header);
+std::string web_send_receive_data(std::string connection, std::string url, std::string postdata, std::vector<std::string> &header);
+std::string web_send_receive_data(std::string connection, std::string url, std::string postdata, std::vector<std::string> &header, std::string method);
 
 void web_connection_init(std::string connection);
 void web_connection_cleanup(std::string connection);

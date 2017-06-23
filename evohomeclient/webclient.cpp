@@ -10,9 +10,9 @@
 #include <stdlib.h>
 #include <iostream>
 #include <sstream>
-#include <malloc.h>
 #include <cstring>
 #include "webclient.h"
+#include <curl/curl.h>
 
 using namespace std;
 
@@ -66,7 +66,7 @@ void web_connection_init(std::string connection)
 		exit(1);
 	}
 	curl_version_info_data* info = curl_version_info(CURLVERSION_NOW);
-	stringstream ss_ua;
+	std::stringstream ss_ua;
 	ss_ua << "libcurl-agent/" << info->version;
 	userAgent = ss_ua.str();
 	curl_connections[connection] = conn;
@@ -103,21 +103,33 @@ void web_kill_all()
 /*
  * Execute web query
  */
-std::string web_send_receive_data(std::string connection, std::string url, curl_slist *header)
+std::string web_send_receive_data(std::string connection, std::string url, std::vector<std::string> &header)
 {
 	return web_send_receive_data(connection, url, "", header, "POST");
 }
-std::string web_send_receive_data(std::string connection, std::string url, std::string postdata, curl_slist *header)
+std::string web_send_receive_data(std::string connection, std::string url, std::string postdata, std::vector<std::string> &header)
 {
 	return web_send_receive_data(connection, url, postdata, header, "POST");
 }
-std::string web_send_receive_data(std::string connection, std::string url, std::string postdata, curl_slist *header, std::string method)
+std::string web_send_receive_data(std::string connection, std::string url, std::string postdata, std::vector<std::string> &header, std::string method)
 {
+	struct curl_slist *httpheader = NULL;
+	if (header.size() > 0)
+	{
+		std::vector<std::string>::const_iterator itt;
+		for (itt = header.begin(); itt != header.end(); ++itt)
+		{
+			httpheader = curl_slist_append(httpheader, (*itt).c_str());
+		}
+	}
+
+
+
 	CURL *conn = curl_connections[connection];
 	curl_easy_reset(conn);
 	curl_easy_setopt(conn, CURLOPT_USERAGENT, userAgent.c_str());
 	curl_easy_setopt(conn, CURLOPT_WRITEFUNCTION, curl_write_cb);
-	res = curl_easy_setopt(conn, CURLOPT_HTTPHEADER, header);
+	res = curl_easy_setopt(conn, CURLOPT_HTTPHEADER, httpheader);
 	struct curl_data_st result;
 	result.payload = (char*)malloc(1);
 	result.size = 0;
@@ -130,17 +142,18 @@ std::string web_send_receive_data(std::string connection, std::string url, std::
 	}
 	curl_easy_setopt(conn, CURLOPT_URL, url.c_str());
 	res = curl_easy_perform(conn);
+	curl_slist_free_all(httpheader);
 
 	if(res != CURLE_OK)
 	{
 		cerr << "ERROR: Could not connect to " << connection << " server, client responds: " << curl_easy_strerror(res) << endl;
 		free(result.payload);
 		web_kill_all();
-		exit(1);
+		return "";
 	}
 
 	// need to free curl result before returning
-	stringstream rdata;
+	std::stringstream rdata;
 	rdata << result.payload;
 	free(result.payload);
 	return rdata.str();
@@ -151,7 +164,7 @@ std::string urlencode(std::string str)
 {
 	char c;
 	unsigned int i;
-	stringstream ss;
+	std::stringstream ss;
 	ss << hex;
 	for (i=0; i<str.length(); i++)
 	{

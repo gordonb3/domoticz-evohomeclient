@@ -10,12 +10,9 @@
 #ifndef _DomoticzClient
 #define _DomoticzClient
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <curl/curl.h>
 #include <map>
+#include <vector>
+#include <string>
 #include "../evohomeclient/jsoncpp/json.h"
 
 class DomoticzClient
@@ -23,7 +20,7 @@ class DomoticzClient
 
 	private:
 	std::string domoticzhost;
-	curl_slist *domoticzheader;
+	std::vector<std::string> domoticzheader;
 
 	void init();
 	std::string send_receive_data(std::string url);

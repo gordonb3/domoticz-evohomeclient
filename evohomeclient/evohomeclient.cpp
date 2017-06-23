@@ -7,7 +7,6 @@
  * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
  */
 
-#include <malloc.h>
 #include <cstring>
 #include <string>
 #include <ctime>
@@ -18,8 +17,6 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
-#include <curl/curl.h>
-
 
 #define EVOHOME_HOST "https://tccna.honeywell.com"
 
@@ -39,7 +36,7 @@ const std::string evo_modes[7] = {"Auto", "HeatingOff", "AutoWithEco", "Away", "
  */
 EvohomeClient::EvohomeClient(std::string user, std::string password)
 {
-	evoheader = NULL;
+	evoheader.clear();
 	init();
 	login(user, password);
 }
@@ -65,19 +62,18 @@ void EvohomeClient::init()
  */
 void EvohomeClient::cleanup()
 {
-	curl_slist_free_all(evoheader);
 	web_connection_cleanup("evohome");
 }
 
 /*
  * Execute web query
  */
-std::string EvohomeClient::send_receive_data(std::string url, curl_slist *header)
+std::string EvohomeClient::send_receive_data(std::string url, std::vector<std::string> &header)
 {
 	return send_receive_data(url, "", header);
 }
 
-std::string EvohomeClient::send_receive_data(std::string url, std::string postdata, curl_slist *header)
+std::string EvohomeClient::send_receive_data(std::string url, std::string postdata, std::vector<std::string> &header)
 {
 
 	std::stringstream ss_url;
@@ -85,12 +81,12 @@ std::string EvohomeClient::send_receive_data(std::string url, std::string postda
 	return web_send_receive_data("evohome", ss_url.str(), postdata, header);
 }
 
-std::string EvohomeClient::put_receive_data(std::string url, std::string postdata, curl_slist *header)
+std::string EvohomeClient::put_receive_data(std::string url, std::string putdata, std::vector<std::string> &header)
 {
 
 	std::stringstream ss_url;
 	ss_url << EVOHOME_HOST << url;
-	return web_send_receive_data("evohome", ss_url.str(), postdata, header, "PUT");
+	return web_send_receive_data("evohome", ss_url.str(), putdata, header, "PUT");
 }
 
 /************************************************************************
@@ -101,10 +97,10 @@ std::string EvohomeClient::put_receive_data(std::string url, std::string postdat
 
 bool EvohomeClient::login(std::string user, std::string password)
 {
-	struct curl_slist *lheader = NULL;
-	lheader = curl_slist_append(lheader,"Authorization: Basic YjAxM2FhMjYtOTcyNC00ZGJkLTg4OTctMDQ4YjlhYWRhMjQ5OnRlc3Q=");
-	lheader = curl_slist_append(lheader,"Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
-	lheader = curl_slist_append(lheader,"charsets: utf-8");
+	std::vector<std::string> lheader;
+	lheader.push_back("Authorization: Basic YjAxM2FhMjYtOTcyNC00ZGJkLTg4OTctMDQ4YjlhYWRhMjQ5OnRlc3Q=");
+	lheader.push_back("Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
+	lheader.push_back("charsets: utf-8");
 
 	std::stringstream pdata;
 
@@ -120,7 +116,6 @@ bool EvohomeClient::login(std::string user, std::string password)
 
 
 	std::string s_res = send_receive_data("/Auth/OAuth/Token", pdata.str(), lheader);
-	curl_slist_free_all(lheader);
 
 	if (s_res.find("<title>") != std::string::npos) // got an HTML page
 	{
@@ -165,11 +160,12 @@ bool EvohomeClient::login(std::string user, std::string password)
 	std::stringstream atoken;
 	atoken << "Authorization: bearer " << j_login["access_token"].asString();
 
-	evoheader = curl_slist_append(evoheader,atoken.str().c_str());
-	evoheader = curl_slist_append(evoheader,"applicationId: b013aa26-9724-4dbd-8897-048b9aada249");
-	evoheader = curl_slist_append(evoheader,"accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
-	evoheader = curl_slist_append(evoheader,"content-type: application/json");
-	evoheader = curl_slist_append(evoheader,"charsets: utf-8");
+	evoheader.clear();
+	evoheader.push_back(atoken.str());
+	evoheader.push_back("applicationId: b013aa26-9724-4dbd-8897-048b9aada249");
+	evoheader.push_back("accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
+	evoheader.push_back("content-type: application/json");
+	evoheader.push_back("charsets: utf-8");
 
 	return user_account();
 }

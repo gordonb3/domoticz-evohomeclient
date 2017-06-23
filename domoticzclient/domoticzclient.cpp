@@ -9,13 +9,11 @@
 
 #include <cstdlib>
 #include <cstring>
-//#include <ctime>
-#include "../evohomeclient/webclient.h"
+#include <iostream>
+#include <sstream>
 #include "domoticzclient.h"
 #include "base64.h"
-
-//using namespace std;
-
+#include "../evohomeclient/webclient.h"
 
 
 /*
@@ -24,10 +22,10 @@
 DomoticzClient::DomoticzClient(std::string host)
 {
 	domoticzhost = host;
-	domoticzheader = NULL;
-	domoticzheader = curl_slist_append(domoticzheader,"Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
-	domoticzheader = curl_slist_append(domoticzheader,"content-type: application/json");
-	domoticzheader = curl_slist_append(domoticzheader,"charsets: utf-8");
+	domoticzheader.clear();
+	domoticzheader.push_back("Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
+	domoticzheader.push_back("content-type: application/json");
+	domoticzheader.push_back("charsets: utf-8");
 	init();
 }
 
