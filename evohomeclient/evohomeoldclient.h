@@ -24,6 +24,9 @@ class EvohomeOldClient
 	private:
 	void init();
 
+	std::string send_receive_data(std::string url, curl_slist *header);
+	std::string send_receive_data(std::string url, std::string postdata, curl_slist *header);
+
 	std::string v1uid;
 	struct curl_slist *evoheader;
 
@@ -40,9 +43,7 @@ class EvohomeOldClient
 
 	bool login(std::string user, std::string password);
 	bool full_installation();
-
-	std::string send_receive_data(std::string url, curl_slist *header);
-	std::string send_receive_data(std::string url, std::string postdata, curl_slist *header);
+	std::string get_zone_temperature(int location, std::string zoneId, int decimals);
 
 	Json::Value j_fi;
 	std::map<int, location> locations;

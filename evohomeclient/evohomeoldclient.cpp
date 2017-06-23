@@ -7,7 +7,7 @@
  * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
  */
 
-#include <malloc.h>
+#include <cmath>
 #include <cstring>
 #include <ctime>
 #include "webclient.h"
@@ -15,8 +15,6 @@
 
 
 #define EVOHOME_HOST "https://tccna.honeywell.com"
-
-using namespace std;
 
 
 /*
@@ -63,7 +61,7 @@ std::string EvohomeOldClient::send_receive_data(std::string url, curl_slist *hea
 std::string EvohomeOldClient::send_receive_data(std::string url, std::string postdata, curl_slist *header)
 {
 
-	stringstream ss_url;
+	std::stringstream ss_url;
 	ss_url << EVOHOME_HOST << url;
 	return web_send_receive_data("old_evohome", ss_url.str(), postdata, header);
 }
@@ -85,7 +83,7 @@ bool EvohomeOldClient::login(std::string user, std::string password)
 	lheader = curl_slist_append(lheader,"Accept: application/json, application/xml, text/json, text/x-json, text/javascript, text/xml");
 	lheader = curl_slist_append(lheader,"content-type: application/json");
 
-	stringstream pdata;
+	std::stringstream pdata;
 	pdata << "{'Username': '" << user << "', 'Password': '" << password << "'";
 	pdata << ", 'ApplicationId': '91db1612-73fd-4500-91b2-e63b069b185c'}";
 	std::string s_res = send_receive_data("/WebAPI/api/Session", pdata.str(), lheader);
@@ -162,12 +160,12 @@ bool EvohomeOldClient::login(std::string user, std::string password)
 bool EvohomeOldClient::full_installation()
 {
 	locations.clear();
-	stringstream url;
+	std::stringstream url;
 
 	url << "/WebAPI/api/locations/?userId=" << v1uid << "&allData=True";
 
 	// evohome 'old' interface does not correctly format the json output
-	stringstream ss_jdata;
+	std::stringstream ss_jdata;
 	ss_jdata << "{\"locations\": " << send_receive_data(url.str(), evoheader) << "}";
 	Json::Reader jReader;
 	if (!jReader.parse(ss_jdata.str(), j_fi))
@@ -182,3 +180,48 @@ bool EvohomeOldClient::full_installation()
 }
 
 
+std::string EvohomeOldClient::get_zone_temperature(int location, std::string zoneId, int decimals)
+{
+	if (((locations.size() == 0) && !full_installation()) || (locations.size() < (size_t)(location)))
+		return "";
+
+	Json::Value *j_loc = locations[location].installationInfo;
+	if (!(*j_loc).isMember("devices") || !(*j_loc)["devices"].isArray())
+		return "";
+
+	int multiplier = (decimals >= 2) ? 100:10;
+
+
+	for (size_t j = 0; j < (*j_loc)["devices"].size(); j++)
+	{
+		Json::Value *j_dev = &(*j_loc)["devices"][(int)(j)];
+		if (!(*j_dev).isMember("deviceID") || !(*j_dev).isMember("thermostat") || !(*j_dev)["thermostat"].isMember("indoorTemperature"))
+			continue;
+		if ((*j_dev)["deviceID"].asString() != zoneId)
+			continue;
+
+		double v1temp = (*j_dev)["thermostat"]["indoorTemperature"].asDouble();
+		if (v1temp > 127) // allow rounding error
+			return "128"; // unit is offline
+
+		// limit output to two decimals
+		std::stringstream sstemp;
+		sstemp << ((floor((v1temp * multiplier) + 0.5) / multiplier) + 0.0001);
+		std::string sztemp = sstemp.str();
+
+		sstemp.str("");
+		bool found = false;
+		int i;
+		for (i = 0; (i < 6) && !found; i++)
+		{
+			sstemp << sztemp[i];
+			if (sztemp[i] == '.')
+				found = true;
+		}
+		sstemp << sztemp[i];
+		if (decimals > 1)
+			sstemp << sztemp[i+1];
+		return sstemp.str();
+	}
+	return "";
+}

@@ -104,11 +104,14 @@ int main(int argc, char** argv)
 // connect to Evohome server
 cout << "connect to Evohome server\n";
 	EvohomeClient eclient = EvohomeClient(evoconfig["usr"],evoconfig["pw"]);
-cout << "connected" << endl;
+cout << "connected (UK/EMEA)" << endl;
+	EvohomeOldClient v1client = EvohomeOldClient(evoconfig["usr"],evoconfig["pw"]);
+cout << "connected (US)" << endl;
 
 // retrieve Evohome installation
 cout << "retrieve Evohome installation\n";
 	eclient.full_installation();
+	v1client.full_installation();
 
 // set Evohome heating system
 	int location = 0;
@@ -139,9 +142,6 @@ cout << "retrieve Evohome installation\n";
 // retrieve Evohome status
 	if ( !	eclient.get_status(location) )  cout << "status fail" << endl;
 
-
-
-
 // retrieving schedules is painfully slow as we can only fetch them one zone at a time.
 // luckily schedules do not change very often, so we can use a local cache
 /*
@@ -152,7 +152,6 @@ cout << "retrieve Evohome installation\n";
 		eclient.read_schedules_from_file(SCHEDULE_CACHE);
 	}
 */
-//eclient.read_schedules_from_file(SCHEDULE_CACHE);
 
 // start demo output
 	cout << "\nModel Type = " << (*tcs->installationInfo)["modelType"] << endl;
@@ -162,15 +161,13 @@ cout << "retrieve Evohome installation\n";
 	cout << endl;
 
 	std::string lastzone = "";
-	cout << "  ID       temp      mode           setpoint      until                name\n";
+	cout << "  ID       temp    v1temp      mode          setpoint      until               name\n";
 	for (std::vector<EvohomeClient::zone>::size_type i = 0; i < tcs->zones.size(); ++i)
 	{
 		std::map<std::string,std::string> zone = evo_get_zone_data(&tcs->zones[i]);
 		if (zone["until"].length() == 0)
 			zone["until"] = eclient.get_next_switchpoint(zone["zoneId"]);
 		else
-//		if (zone["until"].length() > 0)
-
 		{
 			// this is stupid: Honeywell is mixing UTC and localtime in their returns
 			// for display we need to convert overrides to localtime
@@ -196,6 +193,7 @@ cout << "retrieve Evohome installation\n";
 
 		cout << zone["zoneId"];
 		cout << " => " << zone["temperature"];
+		cout << " => " << v1client.get_zone_temperature(location, zone["zoneId"], 1);
 		cout << " => " << zone["setpointMode"];
 		cout << " => " << zone["targetTemperature"];
 		cout << " => " << zone["until"];
@@ -207,18 +205,21 @@ cout << "retrieve Evohome installation\n";
 
 	cout << endl;
 
-
+/*
 	EvohomeClient::zone* myzone = eclient.get_zone_by_ID(lastzone);
 	cout << "\nDump of installationinfo for zone" << lastzone << "\n";
 	cout << (*myzone->installationInfo).toStyledString() << "\n";
 	cout << "\nDump of statusinfo for zone" << lastzone << "\n";
 	cout << (*myzone->status).toStyledString() << "\n";
+*/
 
-
+/*
 	cout << "\nDump of full installationinfo\n";
 	cout << eclient.j_fi.toStyledString() << "\n";
+*/
 
 	eclient.cleanup();
+	v1client.cleanup();
 
 	return 0;
 }
