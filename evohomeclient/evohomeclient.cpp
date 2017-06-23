@@ -535,6 +535,10 @@ std::string EvohomeClient::get_next_switchpoint(Json::Value &schedule)
 }
 std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::string &current_setpoint)
 {
+	return get_next_switchpoint_ex(schedule, current_setpoint, -1);
+}
+std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::string &current_setpoint, int force_weekday)
+{
 	if (schedule.isNull())
 		return "";
 
@@ -544,7 +548,7 @@ std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::s
 	int year = ltime.tm_year;
 	int month = ltime.tm_mon;
 	int day = ltime.tm_mday;
-	int wday = ltime.tm_wday;
+	int wday = (force_weekday >= 0) ? (force_weekday % 7) : ltime.tm_wday;
 	char rdata[30];
 	sprintf(rdata, "%04d-%02d-%02dT%02d:%02d:%02dZ", ltime.tm_year + 1900, ltime.tm_mon + 1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec);
 	std::string szdatetime = std::string(rdata);
@@ -631,6 +635,9 @@ std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::s
 }
 
 
+
+
+
 bool EvohomeClient::schedules_backup(std::string filename)
 {
 	std::ofstream myfile (filename.c_str());
@@ -703,31 +710,31 @@ bool EvohomeClient::schedules_backup(std::string filename)
 						j_tcssched[s_zoneId] = j_zonesched;
 					}
 // Hot Water
-// GB3: I hope I got this right - I have no way of checking this because my installation does not have such a device
-//
-/*
-					json_object *j_dhw;
-					if (json_object_object_get_ex(j_tcs, "dhw", &j_dhw))
+					if (has_dhw(il, igw, itcs))
 					{
-						if (!json_object_object_get_ex(j_zone, "dhwId", &j_zoneId))
+						std::string s_dhwId = (*j_tcs)["dhw"]["dhwId"].asString();
+						if (s_dhwId.empty())
 							continue;
-						std::string s_zoneId = json_object_get_string(j_zoneId);
-						url.str("");
-						url << "/WebAPI/emea/api/v1/domesticHotWater/" << s_zoneId << "/schedule";
+
+						std::stringstream url;
+						url << "/WebAPI/emea/api/v1/domesticHotWater/" << s_dhwId << "/schedule";
 						std::string s_res = send_receive_data(url.str(), evoheader);
 						if ( ! s_res.find("\"id\""))
 							return false;
-						json_object *j_week = json_tokener_parse(s_res.c_str());
-						json_object *j_days;
-						if (!json_object_object_get_ex(j_week, "dailySchedules", &j_days))
-							j_days = json_object_new_array();
 
-						json_object *j_zonesched = json_object_new_object();
-						json_object_object_add(j_zonesched,"dhwId", j_zoneId);
-						json_object_object_add(j_zonesched,"dailySchedules", j_days);
-						json_object_object_add(j_tcssched,s_zoneId.c_str(), j_zonesched);
+						Json::Reader jReader;
+						Json::Value j_week;
+						if (!jReader.parse(s_res, j_week))
+							continue;
+
+						Json::Value j_dhwsched;
+						j_dhwsched["dhwId"] = s_dhwId;
+						if (j_week["dailySchedules"].isArray())
+							j_dhwsched["dailySchedules"] = j_week["dailySchedules"];
+						else
+							j_dhwsched["dailySchedules"] = Json::arrayValue;
+						j_tcssched[s_dhwId] = j_dhwsched;
 					}
-*/
 					j_gwsched[s_tcsId] = j_tcssched;
 				}
 				j_locsched[s_gwId] = j_gwsched;

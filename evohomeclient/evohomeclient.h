@@ -112,6 +112,7 @@ class EvohomeClient
 	std::string get_next_switchpoint(std::string zoneId);
 	std::string get_next_switchpoint(Json::Value &schedule);
 	std::string get_next_switchpoint_ex(Json::Value &schedule, std::string &current_setpoint);
+	std::string get_next_switchpoint_ex(Json::Value &schedule, std::string &current_setpoint, int force_weekday);
 
 	bool set_system_mode(std::string systemId, int mode, std::string date_until);
 	bool set_system_mode(std::string systemId, int mode);
