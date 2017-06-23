@@ -35,6 +35,7 @@ class EvohomeOldClient
 		Json::Value *status;
 	};
 
+	EvohomeOldClient();
 	EvohomeOldClient(std::string user, std::string password);
 	void cleanup();
 

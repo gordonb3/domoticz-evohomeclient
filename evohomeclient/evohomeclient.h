@@ -79,6 +79,7 @@ class EvohomeClient
 	Json::Value j_stat;
 
 
+	EvohomeClient();
 	EvohomeClient(std::string user, std::string password);
 	void cleanup();
 

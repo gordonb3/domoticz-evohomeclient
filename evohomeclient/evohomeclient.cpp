@@ -34,9 +34,12 @@ const std::string evo_modes[7] = {"Auto", "HeatingOff", "AutoWithEco", "Away", "
 /*
  * Class construct
  */
+EvohomeClient::EvohomeClient()
+{
+	init();
+}
 EvohomeClient::EvohomeClient(std::string user, std::string password)
 {
-	evoheader.clear();
 	init();
 	login(user, password);
 }

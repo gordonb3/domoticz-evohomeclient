@@ -22,6 +22,10 @@
 /*
  * Class construct
  */
+EvohomeOldClient::EvohomeOldClient()
+{
+	init();
+}
 EvohomeOldClient::EvohomeOldClient(std::string user, std::string password)
 {
 	init();
