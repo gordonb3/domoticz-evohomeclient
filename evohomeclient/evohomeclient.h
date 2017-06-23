@@ -28,7 +28,6 @@ class EvohomeClient
 	std::string put_receive_data(std::string url, std::string postdata, curl_slist *header);
 
 	void init();
-	bool login(std::string user, std::string password);
 	bool user_account();
 
 	void get_gateways(int location);
@@ -85,6 +84,7 @@ class EvohomeClient
 	EvohomeClient(std::string user, std::string password);
 	void cleanup();
 
+	bool login(std::string user, std::string password);
 	bool full_installation();
 	bool get_status(int location);
 	bool get_status(std::string locationId);
@@ -127,7 +127,6 @@ class EvohomeClient
 	bool set_dhw_mode(std::string systemId, std::string mode);
 
 	std::string request_next_switchpoint(std::string zoneId);
-
 };
 
 #endif

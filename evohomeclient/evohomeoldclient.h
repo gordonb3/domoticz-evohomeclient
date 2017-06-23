@@ -23,7 +23,6 @@ class EvohomeOldClient
 {
 	private:
 	void init();
-	bool login(std::string user, std::string password);
 
 	std::string v1uid;
 	struct curl_slist *evoheader;
@@ -37,11 +36,13 @@ class EvohomeOldClient
 	};
 
 	EvohomeOldClient(std::string user, std::string password);
+	void cleanup();
+
+	bool login(std::string user, std::string password);
 	bool full_installation();
 
 	std::string send_receive_data(std::string url, curl_slist *header);
 	std::string send_receive_data(std::string url, std::string postdata, curl_slist *header);
-	void cleanup();
 
 	Json::Value j_fi;
 	std::map<int, location> locations;
