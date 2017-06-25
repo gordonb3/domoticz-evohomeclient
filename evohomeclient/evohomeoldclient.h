@@ -25,7 +25,7 @@ class EvohomeOldClient
 	std::string send_receive_data(std::string url, std::string postdata, std::vector<std::string> &header);
 
 	std::string v1uid;
-	struct std::vector<std::string> evoheader;
+	std::vector<std::string> evoheader;
 
 	public:
 	struct location

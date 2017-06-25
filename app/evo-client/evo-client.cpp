@@ -72,6 +72,10 @@
 #define gmtime_r(timep, result) gmtime_s(result, timep)
 #endif
 
+#ifndef _WIN32
+#define sprintf_s(buffer, buffer_size, stringbuffer, ...) (sprintf(buffer, stringbuffer, __VA_ARGS__))
+#endif
+
 using namespace std;
 
 time_t now;
@@ -241,7 +245,7 @@ void startlog(std::string fname)
 		struct tm ltime;
 		localtime_r(&now, &ltime);
 		char c_until[40];
-		sprintf(c_until, "%04d-%02d-%02d %02d:%02d:%02d", ltime.tm_year+1900, ltime.tm_mon+1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec);
+		sprintf_s(c_until, 40, "%04d-%02d-%02d %02d:%02d:%02d", ltime.tm_year+1900, ltime.tm_mon+1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec);
 		flog << MYNAME << " start: " << c_until << endl;
 		return;
 	}
@@ -571,7 +575,7 @@ std::string local_to_utc(std::string local_time)
 	ltime.tm_sec = atoi(local_time.substr(17, 2).c_str()) + tzoffset;
 	mktime(&ltime);
 	char until[22];
-	sprintf(until,"%04d-%02d-%02dT%02d:%02d:%02dZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,ltime.tm_hour,ltime.tm_min,ltime.tm_sec);
+	sprintf_s(until,22,"%04d-%02d-%02dT%02d:%02d:%02dZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,ltime.tm_hour,ltime.tm_min,ltime.tm_sec);
 	return std::string(until);
 }
 
@@ -598,7 +602,7 @@ std::string utc_to_local(std::string utc_time)
 	time_t ntime = mktime(&ltime);
 	ntime--; // prevent compiler warning
 	char until[40];
-	sprintf(until,"%04d-%02d-%02dT%02d:%02d:%02dZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,ltime.tm_hour,ltime.tm_min,ltime.tm_sec);
+	sprintf_s(until,40,"%04d-%02d-%02dT%02d:%02d:%02dZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,ltime.tm_hour,ltime.tm_min,ltime.tm_sec);
 	return string(until);
 }
 
@@ -961,7 +965,7 @@ std::string format_time(std::string utc_time)
 	if ( ntime == -1)
 		exit_error(szERROR+"bad timestamp value on command line");
 	char c_until[40];
-	sprintf(c_until, "%04d-%02d-%02dT%02d:%02d:%02dZ", ltime.tm_year+1900, ltime.tm_mon+1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec);
+	sprintf_s(c_until, 40, "%04d-%02d-%02dT%02d:%02d:%02dZ", ltime.tm_year+1900, ltime.tm_mon+1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec);
 	return string(c_until);
 }
 

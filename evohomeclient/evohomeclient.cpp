@@ -26,6 +26,10 @@
 #define gmtime_r(timep, result) gmtime_s(result, timep)
 #endif
 
+#ifndef _WIN32
+#define sprintf_s(buffer, buffer_size, stringbuffer, ...) (sprintf(buffer, stringbuffer, __VA_ARGS__))
+#endif
+
 //using namespace std;
 
 const std::string weekdays[7] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
@@ -549,7 +553,7 @@ std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::s
 	int day = ltime.tm_mday;
 	int wday = (force_weekday >= 0) ? (force_weekday % 7) : ltime.tm_wday;
 	char rdata[30];
-	sprintf(rdata, "%04d-%02d-%02dT%02d:%02d:%02dZ", ltime.tm_year + 1900, ltime.tm_mon + 1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec);
+	sprintf_s(rdata, 30, "%04d-%02d-%02dT%02d:%02d:%02dZ", ltime.tm_year + 1900, ltime.tm_mon + 1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec);
 	std::string szdatetime = std::string(rdata);
 	if (szdatetime <= schedule["nextSwitchpoint"].asString()) // our current cached values are still valid
 	{
@@ -626,7 +630,7 @@ std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::s
 	if (!found)
 		return "";
 
-	sprintf(rdata, "%04d-%02d-%02dT%sA", ltime.tm_year + 1900, ltime.tm_mon + 1, ltime.tm_mday, sztime.c_str()); // localtime => use CET to indicate that it is not UTC
+	sprintf_s(rdata, 30, "%04d-%02d-%02dT%sA", ltime.tm_year + 1900, ltime.tm_mon + 1, ltime.tm_mday, sztime.c_str()); // localtime => use CET to indicate that it is not UTC
 	szdatetime = std::string(rdata);
 	schedule["currentSetpoint"] = current_setpoint;
 	schedule["nextSwitchpoint"] = szdatetime;
@@ -911,7 +915,7 @@ bool verify_date(std::string date)
 	if ( ntime == -1)
 		return false;
 	char rdata[12];
-	sprintf(rdata,"%04d-%02d-%02d",mtime.tm_year+1900,mtime.tm_mon+1,mtime.tm_mday);
+	sprintf_s(rdata,12,"%04d-%02d-%02d",mtime.tm_year+1900,mtime.tm_mon+1,mtime.tm_mday);
 	return (s_date == std::string(rdata));
 }
 
@@ -934,9 +938,9 @@ bool verify_datetime(std::string datetime)
 	if ( ntime == -1)
 		return false;
 	char c_date[12];
-	sprintf(c_date,"%04d-%02d-%02d",mtime.tm_year+1900,mtime.tm_mon+1,mtime.tm_mday);
+	sprintf_s(c_date,12,"%04d-%02d-%02d",mtime.tm_year+1900,mtime.tm_mon+1,mtime.tm_mday);
 	char c_time[12];
-	sprintf(c_time,"%02d:%02d:%02d",mtime.tm_hour,mtime.tm_min,mtime.tm_sec);
+	sprintf_s(c_time,12,"%02d:%02d:%02d",mtime.tm_hour,mtime.tm_min,mtime.tm_sec);
 	return ( (s_date == std::string(c_date)) && (s_time == std::string(c_time)) );
 }
 
