@@ -97,19 +97,19 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <OptimizeReferences>false</OptimizeReferences>
-      <AdditionalDependencies>libcurl_a.lib;json.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;Ws2_32.lib;wldap32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcurl_a.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;Ws2_32.lib;wldap32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="domoticzclient\base64.c" />
-    <ClCompile Include="domoticzclient\domoticzclient.c" />
-    <ClCompile Include="evohomeclient\evohomeclient.c" />
-    <ClCompile Include="evohomeclient\evohomeoldclient.c" />
-    <ClCompile Include="evohomeclient\webclient.c" />
-    <ClCompile Include="app\evo-client\evo-client.c" />
+    <ClCompile Include="domoticzclient\base64.cpp" />
+    <ClCompile Include="domoticzclient\domoticzclient.cpp" />
+    <ClCompile Include="evohomeclient\evohomeclient.cpp" />
+    <ClCompile Include="evohomeclient\evohomeoldclient.cpp" />
+    <ClCompile Include="evohomeclient\webclient.cpp" />
+    <ClCompile Include="app\evo-client\evo-client.cpp" />
     <ClCompile Include="evohomeclient\jsoncpp\json_writer.cpp" />
     <ClCompile Include="evohomeclient\jsoncpp\json_value.cpp" />
     <ClCompile Include="evohomeclient\jsoncpp\json_reader.cpp" />

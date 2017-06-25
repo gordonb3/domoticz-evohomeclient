@@ -15,22 +15,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="domoticzclient\base64.c">
+    <ClCompile Include="domoticzclient\base64.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="domoticzclient\domoticzclient.c">
+    <ClCompile Include="domoticzclient\domoticzclient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="evohomeclient\evohomeclient.c">
+    <ClCompile Include="evohomeclient\evohomeclient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="evohomeclient\evohomeoldclient.c">
+    <ClCompile Include="evohomeclient\evohomeoldclient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="evohomeclient\webclient.c">
+    <ClCompile Include="evohomeclient\webclient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="app\evo-client\evo-client.c">
+    <ClCompile Include="app\evo-client\evo-client.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="evohomeclient\jsoncpp\json_writer.cpp">
