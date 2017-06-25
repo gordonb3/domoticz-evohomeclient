@@ -11,8 +11,6 @@
 #define _WebClient
 
 #include <string>
-//#include <curl/curl.h>
-#include <map>
 #include <vector>
 
 std::string web_send_receive_data(std::string connection, std::string url, std::vector<std::string> &header);

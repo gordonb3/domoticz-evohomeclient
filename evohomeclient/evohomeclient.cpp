@@ -45,7 +45,8 @@ EvohomeClient::EvohomeClient()
 EvohomeClient::EvohomeClient(std::string user, std::string password)
 {
 	init();
-	login(user, password);
+	if (!login(user, password))
+		throw std::invalid_argument( "" );
 }
 
 
@@ -110,7 +111,6 @@ bool EvohomeClient::login(std::string user, std::string password)
 	lheader.push_back("charsets: utf-8");
 
 	std::stringstream pdata;
-
 	pdata << "installationInfo-Type=application%2Fx-www-form-urlencoded;charset%3Dutf-8";
 	pdata << "&Host=rs.alarmnet.com%2F";
 	pdata << "&Cache-Control=no-store%20no-cache";
@@ -121,24 +121,23 @@ bool EvohomeClient::login(std::string user, std::string password)
 	pdata << "&Password=" << urlencode(password);
 	pdata << "&Connection=Keep-Alive";
 
-
 	std::string s_res = send_receive_data("/Auth/OAuth/Token", pdata.str(), lheader);
-
 	if (s_res.find("<title>") != std::string::npos) // got an HTML page
 	{
-		std::cout << "Login to Evohome server failed - server responds: ";
+		std::stringstream ss_err;
+		ss_err << "Login to Evohome server failed - server responds: ";
 		int i = s_res.find("<title>");
 		char* html = &s_res[i];
 		i = 7;
 		char c = html[i];
 		while (c != '<')
 		{
-			std::cout << c;
+			ss_err << c;
 			i++;
 			c = html[i];
 		}
-		std::cout << "\n";
 		web_connection_cleanup("evohome");
+		throw std::invalid_argument( ss_err.str() );
 		return false;
 	}
 

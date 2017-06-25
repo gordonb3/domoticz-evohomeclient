@@ -7,14 +7,13 @@
  * Source code subject to GNU GENERAL PUBLIC LICENSE version 3
  */
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <iostream>
 #include <sstream>
 #include <cstring>
+#include <map>
 #include "webclient.h"
 #include <curl/curl.h>
-
-using namespace std;
 
 
 CURLcode res;
@@ -61,10 +60,7 @@ void web_connection_init(std::string connection)
 	}
 	conn = curl_easy_init();
 	if ( ! conn )
-	{
-		cerr << "Unable to initiate libcurl !";
-		exit(1);
-	}
+		throw std::runtime_error( "Failed to instantiate libcurl !" );
 	curl_version_info_data* info = curl_version_info(CURLVERSION_NOW);
 	std::stringstream ss_ua;
 	ss_ua << "libcurl-agent/" << info->version;
@@ -123,8 +119,6 @@ std::string web_send_receive_data(std::string connection, std::string url, std::
 		}
 	}
 
-
-
 	CURL *conn = curl_connections[connection];
 	curl_easy_reset(conn);
 	curl_easy_setopt(conn, CURLOPT_USERAGENT, userAgent.c_str());
@@ -144,12 +138,12 @@ std::string web_send_receive_data(std::string connection, std::string url, std::
 	res = curl_easy_perform(conn);
 	curl_slist_free_all(httpheader);
 
-	if(res != CURLE_OK)
+	if (res != CURLE_OK)
 	{
-		cerr << "ERROR: Could not connect to " << connection << " server, client responds: " << curl_easy_strerror(res) << endl;
 		free(result.payload);
-		web_kill_all();
-		return "";
+		std::stringstream ss_err;
+		ss_err << "ERROR: Could not connect to " << connection << " server, client responds: " << curl_easy_strerror(res);
+		throw std::invalid_argument( ss_err.str() );
 	}
 
 	// need to free curl result before returning
@@ -165,7 +159,7 @@ std::string urlencode(std::string str)
 	char c;
 	unsigned int i;
 	std::stringstream ss;
-	ss << hex;
+	ss << std::hex;
 	for (i=0; i<str.length(); i++)
 	{
 		c = str[i];
@@ -185,9 +179,9 @@ std::string urlencode(std::string str)
 			continue;
 		}
 		if (c < 0x10)
-			ss << uppercase << "%0" << int((unsigned char) c) << nouppercase;
+			ss << std::uppercase << "%0" << int((unsigned char) c) << std::nouppercase;
 		else
-			ss << uppercase << '%' << int((unsigned char) c) << nouppercase;
+			ss << std::uppercase << '%' << int((unsigned char) c) << std::nouppercase;
 	}
 	return ss.str();
 }
