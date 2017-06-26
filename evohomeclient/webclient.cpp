@@ -142,7 +142,7 @@ std::string web_send_receive_data(std::string connection, std::string url, std::
 	{
 		free(result.payload);
 		std::stringstream ss_err;
-		ss_err << "ERROR: Could not connect to " << connection << " server, client responds: " << curl_easy_strerror(res);
+		ss_err << "Failed to connect to " << connection << " server, client responds: " << curl_easy_strerror(res);
 		throw std::invalid_argument( ss_err.str() );
 	}
 

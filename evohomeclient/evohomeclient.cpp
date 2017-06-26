@@ -101,7 +101,7 @@ std::string EvohomeClient::send_receive_data(std::string url, std::string postda
 	if (s_res.find("<title>") != std::string::npos) // got an HTML page
 	{
 		std::stringstream ss_err;
-		ss_err << "Bad response: ";
+		ss_err << "Bad return: ";
 		int i = s_res.find("<title>");
 		char* html = &s_res[i];
 		i = 7;
