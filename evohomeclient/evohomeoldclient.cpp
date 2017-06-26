@@ -184,48 +184,55 @@ bool EvohomeOldClient::full_installation()
 }
 
 
-std::string EvohomeOldClient::get_zone_temperature(int location, std::string zoneId, int decimals)
+std::string EvohomeOldClient::get_zone_temperature(std::string locationId, std::string zoneId, int decimals)
 {
-	if (((locations.size() == 0) && !full_installation()) || (locations.size() < (size_t)(location)))
-		return "";
-
-	Json::Value *j_loc = locations[location].installationInfo;
-	if (!(*j_loc).isMember("devices") || !(*j_loc)["devices"].isArray())
+	if ((locations.size() == 0) && !full_installation())
 		return "";
 
 	int multiplier = (decimals >= 2) ? 100:10;
 
-
-	for (size_t j = 0; j < (*j_loc)["devices"].size(); j++)
+	for (size_t iloc = 0; iloc < locations.size(); iloc++)
 	{
-		Json::Value *j_dev = &(*j_loc)["devices"][(int)(j)];
-		if (!(*j_dev).isMember("deviceID") || !(*j_dev).isMember("thermostat") || !(*j_dev)["thermostat"].isMember("indoorTemperature"))
-			continue;
-		if ((*j_dev)["deviceID"].asString() != zoneId)
+		Json::Value *j_loc = locations[iloc].installationInfo;
+		if (!(*j_loc).isMember("devices") || !(*j_loc)["devices"].isArray())
 			continue;
 
-		double v1temp = (*j_dev)["thermostat"]["indoorTemperature"].asDouble();
-		if (v1temp > 127) // allow rounding error
-			return "128"; // unit is offline
-
-		// limit output to two decimals
-		std::stringstream sstemp;
-		sstemp << ((floor((v1temp * multiplier) + 0.5) / multiplier) + 0.0001);
-		std::string sztemp = sstemp.str();
-
-		sstemp.str("");
-		bool found = false;
-		int i;
-		for (i = 0; (i < 6) && !found; i++)
+		for (size_t idev = 0; idev < (*j_loc)["devices"].size(); idev++)
 		{
+			Json::Value *j_dev = &(*j_loc)["devices"][(int)(idev)];
+			if (!(*j_dev).isMember("deviceID") || !(*j_dev).isMember("thermostat") || !(*j_dev)["thermostat"].isMember("indoorTemperature"))
+				continue;
+			if ((*j_dev).isMember("locationID") && ((*j_dev)["locationID"].asString() != locationId))
+			{
+				idev = 128; // move to next location
+				continue;
+			}
+			if ((*j_dev)["deviceID"].asString() != zoneId)
+				continue;
+
+			double v1temp = (*j_dev)["thermostat"]["indoorTemperature"].asDouble();
+			if (v1temp > 127) // allow rounding error
+				return "128"; // unit is offline
+
+			// limit output to two decimals
+			std::stringstream sstemp;
+			sstemp << ((floor((v1temp * multiplier) + 0.5) / multiplier) + 0.0001);
+			std::string sztemp = sstemp.str();
+
+			sstemp.str("");
+			bool found = false;
+			int i;
+			for (i = 0; (i < 6) && !found; i++)
+			{
+				sstemp << sztemp[i];
+				if (sztemp[i] == '.')
+					found = true;
+			}
 			sstemp << sztemp[i];
-			if (sztemp[i] == '.')
-				found = true;
+			if (decimals > 1)
+				sstemp << sztemp[i+1];
+			return sstemp.str();
 		}
-		sstemp << sztemp[i];
-		if (decimals > 1)
-			sstemp << sztemp[i+1];
-		return sstemp.str();
 	}
 	return "";
 }

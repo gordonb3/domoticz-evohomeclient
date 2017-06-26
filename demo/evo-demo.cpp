@@ -163,7 +163,7 @@ int main(int argc, char** argv)
 
 		std::cout << "    " << zone["zoneId"];
 		std::cout << " => " << zone["temperature"];
-		std::cout << " => " << v1client.get_zone_temperature(location, zone["zoneId"], 1);
+		std::cout << " => " << v1client.get_zone_temperature(tcs->zones[i].locationId, zone["zoneId"], 1);
 		std::cout << " => " << zone["setpointMode"];
 		std::cout << " => " << zone["targetTemperature"];
 		std::cout << " => " << zone["until"];
@@ -188,7 +188,10 @@ int main(int argc, char** argv)
 	std::cout << "\nDump of full installationinfo\n";
 	std::cout << eclient.j_fi.toStyledString() << "\n";
 */
-
+/*
+	std::cout << "\nDump of full installationinfo\n";
+	std::cout << v1client.j_fi.toStyledString() << "\n";
+*/
 	eclient.cleanup();
 	v1client.cleanup();
 

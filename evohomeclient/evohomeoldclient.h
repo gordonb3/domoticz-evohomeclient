@@ -41,7 +41,7 @@ class EvohomeOldClient
 
 	bool login(std::string user, std::string password);
 	bool full_installation();
-	std::string get_zone_temperature(int location, std::string zoneId, int decimals);
+	std::string get_zone_temperature(std::string locationId, std::string zoneId, int decimals);
 
 	Json::Value j_fi;
 	std::map<int, location> locations;
