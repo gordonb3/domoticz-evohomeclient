@@ -45,7 +45,17 @@ EvohomeClient::EvohomeClient()
 EvohomeClient::EvohomeClient(std::string user, std::string password)
 {
 	init();
-	if (!login(user, password))
+	bool login_success;
+	try
+	{
+		login_success = login(user, password);
+	}
+	catch (...)
+	{
+		throw;
+	}
+
+	if (!login_success)
 		throw std::invalid_argument( "login fail" );
 }
 
