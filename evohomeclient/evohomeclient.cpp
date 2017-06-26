@@ -107,7 +107,15 @@ std::string EvohomeClient::send_receive_data(std::string url, std::string postda
 {
 	std::stringstream ss_url;
 	ss_url << EVOHOME_HOST << url;
-	std::string s_res = web_send_receive_data("evohome", ss_url.str(), postdata, header, method);
+	std::string s_res;
+	try
+	{
+		s_res = web_send_receive_data("evohome", ss_url.str(), postdata, header, method);
+	}
+	catch (...)
+	{
+		throw;
+	}
 	if (s_res.find("<title>") != std::string::npos) // got an HTML page
 	{
 		std::stringstream ss_err;
@@ -156,7 +164,15 @@ bool EvohomeClient::login(std::string user, std::string password)
 	pdata << "&Password=" << urlencode(password);
 	pdata << "&Connection=Keep-Alive";
 
-	std::string s_res = send_receive_data("/Auth/OAuth/Token", pdata.str(), lheader);
+	std::string s_res;
+	try
+	{
+		s_res = send_receive_data("/Auth/OAuth/Token", pdata.str(), lheader);
+	}
+	catch (...)
+	{
+		throw;
+	}
 	if (s_res[0] == '[') // got unnamed array as reply
 	{
 		s_res[0] = ' ';
@@ -178,7 +194,6 @@ bool EvohomeClient::login(std::string user, std::string password)
 	if (!szError.empty())
 		return false;
 
-
 	std::stringstream atoken;
 	atoken << "Authorization: bearer " << j_login["access_token"].asString();
 
@@ -189,7 +204,16 @@ bool EvohomeClient::login(std::string user, std::string password)
 	evoheader.push_back("content-type: application/json");
 	evoheader.push_back("charsets: utf-8");
 
-	return user_account();
+	bool got_uid;
+	try
+	{
+		got_uid = user_account();
+	}
+	catch (...)
+	{
+		throw;
+	}
+	return got_uid;
 }
 
 
@@ -199,7 +223,15 @@ bool EvohomeClient::login(std::string user, std::string password)
  */
 bool EvohomeClient::user_account()
 {
-	std::string s_res = send_receive_data("/WebAPI/emea/api/v1/userAccount", evoheader);
+	std::string s_res;
+	try
+	{
+		s_res = send_receive_data("/WebAPI/emea/api/v1/userAccount", evoheader);
+	}
+	catch (...)
+	{
+		throw;
+	}
 	if (s_res[0] == '[') // got unnamed array as reply
 	{
 		s_res[0] = ' ';
@@ -298,7 +330,14 @@ bool EvohomeClient::full_installation()
 
 	// evohome v1 interface does not correctly format the json output
 	std::stringstream ss_jdata;
-	ss_jdata << "{\"locations\": " << send_receive_data(url.str(), evoheader) << "}";
+	try
+	{
+		ss_jdata << "{\"locations\": " << send_receive_data(url.str(), evoheader) << "}";
+	}
+	catch (...)
+	{
+		throw;
+	}
 	Json::Reader jReader;
 	j_fi.clear();
 	if (!jReader.parse(ss_jdata.str(), j_fi) || !j_fi["locations"].isArray())
@@ -346,7 +385,15 @@ bool EvohomeClient::get_status(int location)
 	bool valid_json = true;
 	std::stringstream url;
 	url << "/WebAPI/emea/api/v1/location/" << locations[location].locationId << "/status?includeTemperatureControlSystems=True";
-	std::string s_res = send_receive_data(url.str(), evoheader);
+	std::string s_res;
+	try
+	{
+		s_res = send_receive_data(url.str(), evoheader);
+	}
+	catch (...)
+	{
+		throw;
+	}
 
 	Json::Reader jReader;
 	j_stat.clear();
@@ -518,7 +565,15 @@ std::string EvohomeClient::request_next_switchpoint(std::string zoneId)
 {
 	std::stringstream url;
 	url << "/WebAPI/emea/api/v1/temperatureZone/" << zoneId << "/schedule/upcommingSwitchpoints?count=1";
-	std::string s_res = send_receive_data(url.str(), evoheader);
+	std::string s_res;
+	try
+	{
+		s_res = send_receive_data(url.str(), evoheader);
+	}
+	catch (...)
+	{
+		throw;
+	}
 	if (s_res[0] == '[') // got unnamed array as reply
 	{
 		s_res[0] = ' ';
@@ -546,7 +601,15 @@ bool EvohomeClient::get_zone_schedule(std::string zoneId)
 {
 	std::stringstream url;
 	url << "/WebAPI/emea/api/v1/temperatureZone/" << zoneId << "/schedule";
-	std::string s_res = send_receive_data(url.str(), evoheader);
+	std::string s_res;
+	try
+	{
+		s_res = send_receive_data(url.str(), evoheader);
+	}
+	catch (...)
+	{
+		throw;
+	}
 	if (!s_res.find("\"id\""))
 		return false;
 	Json::Reader jReader;
@@ -569,14 +632,38 @@ std::string EvohomeClient::get_next_switchpoint(std::string zoneId)
 }
 std::string EvohomeClient::get_next_switchpoint(EvohomeClient::temperatureControlSystem* tcs, int zone)
 {
-	if ((tcs->zones[zone].schedule.isNull()) && !get_zone_schedule(tcs->zones[zone].zoneId))
-		return "";
+	if (tcs->zones[zone].schedule.isNull())
+	{
+		bool got_schedule;
+		try
+		{
+			got_schedule = get_zone_schedule(tcs->zones[zone].zoneId);
+		}
+		catch (...)
+		{
+			throw;
+		}
+		if (!got_schedule)
+			return "";
+	}
 	return get_next_switchpoint(tcs->zones[zone].schedule);
 }
 std::string EvohomeClient::get_next_switchpoint(zone* hz)
 {
-	if ((hz->schedule.isNull()) && !get_zone_schedule(hz->zoneId))
-		return "";
+	if (hz->schedule.isNull())
+	{
+		bool got_schedule;
+		try
+		{
+			got_schedule = get_zone_schedule(hz->zoneId);
+		}
+		catch (...)
+		{
+			throw;
+		}
+		if (!got_schedule)
+			return "";
+	}
 	return get_next_switchpoint(hz->schedule);
 }
 std::string EvohomeClient::get_next_switchpoint(Json::Value &schedule)
@@ -709,14 +796,38 @@ std::string EvohomeClient::get_next_utcswitchpoint(std::string zoneId)
 }
 std::string EvohomeClient::get_next_utcswitchpoint(EvohomeClient::temperatureControlSystem* tcs, int zone)
 {
-	if ((tcs->zones[zone].schedule.isNull()) && !get_zone_schedule(tcs->zones[zone].zoneId))
-		return "";
+	if (tcs->zones[zone].schedule.isNull())
+	{
+		bool got_schedule;
+		try
+		{
+			got_schedule = get_zone_schedule(tcs->zones[zone].zoneId);
+		}
+		catch (...)
+		{
+			throw;
+		}
+		if (!got_schedule)
+			return "";
+	}
 	return get_next_utcswitchpoint(tcs->zones[zone].schedule);
 }
 std::string EvohomeClient::get_next_utcswitchpoint(zone* hz)
 {
-	if ((hz->schedule.isNull()) && !get_zone_schedule(hz->zoneId))
-		return "";
+	if (hz->schedule.isNull())
+	{
+		bool got_schedule;
+		try
+		{
+			got_schedule = get_zone_schedule(hz->zoneId);
+		}
+		catch (...)
+		{
+			throw;
+		}
+		if (!got_schedule)
+			return "";
+	}
 	return get_next_utcswitchpoint(hz->schedule);
 }
 std::string EvohomeClient::get_next_utcswitchpoint(Json::Value &schedule)
@@ -792,7 +903,15 @@ bool EvohomeClient::schedules_backup(std::string filename)
 							continue;
 
 						url << "/WebAPI/emea/api/v1/temperatureZone/" << s_zoneId << "/schedule";
-						std::string s_res = send_receive_data(url.str(), evoheader);
+						std::string s_res;
+						try
+						{
+							s_res = send_receive_data(url.str(), evoheader);
+						}
+						catch (...)
+						{
+							throw;
+						}
 						if (!s_res.find("\"id\""))
 							continue;
 
@@ -819,7 +938,15 @@ bool EvohomeClient::schedules_backup(std::string filename)
 
 						std::stringstream url;
 						url << "/WebAPI/emea/api/v1/domesticHotWater/" << s_dhwId << "/schedule";
-						std::string s_res = send_receive_data(url.str(), evoheader);
+						std::string s_res;
+						try
+						{
+							s_res = send_receive_data(url.str(), evoheader);
+						}
+						catch (...)
+						{
+							throw;
+						}
 						if ( ! s_res.find("\"id\""))
 							return false;
 
@@ -955,7 +1082,15 @@ bool EvohomeClient::set_zone_schedule(std::string zoneId, std::string zoneType, 
 		}
 	}
 
-	std::string s_res = put_receive_data(url.str(), ss.str(), evoheader);
+	std::string s_res;
+	try
+	{
+		s_res = put_receive_data(url.str(), ss.str(), evoheader);
+	}
+	catch (...)
+	{
+		throw;
+	}
 	if (s_res.find("\"id\""))
 		return true;
 	return false;
@@ -988,7 +1123,15 @@ bool EvohomeClient::schedules_restore(std::string filename)
 				for (z = 0; z < locations[l].gateways[g].temperatureControlSystems[t].zones.size(); z++)
 				{
 					std::cout << "        Zone: " << (*locations[l].gateways[g].temperatureControlSystems[t].zones[z].installationInfo)["name"].asString() << "\n";
-					set_zone_schedule(locations[l].gateways[g].temperatureControlSystems[t].zones[z].zoneId, &locations[l].gateways[g].temperatureControlSystems[t].zones[z].schedule);
+					try
+					{
+						set_zone_schedule(locations[l].gateways[g].temperatureControlSystems[t].zones[z].zoneId, &locations[l].gateways[g].temperatureControlSystems[t].zones[z].schedule);
+					}
+					catch (...)
+					{
+						throw;
+					}
+
 				}
 			}
 		}
@@ -1052,7 +1195,6 @@ bool EvohomeClient::verify_datetime(std::string datetime)
 
 /*
  * Convert a localtime ISO datetime string to UTC
- * Throws std::invalid_argument from (web) send_receive_data
  */
 std::string EvohomeClient::local_to_utc(std::string local_time)
 {
@@ -1092,7 +1234,6 @@ std::string EvohomeClient::local_to_utc(std::string local_time)
 
 /*
  * Convert a UTC ISO datetime string to localtime
- * Throws std::invalid_argument from (web) send_receive_data
  */
 std::string EvohomeClient::utc_to_local(std::string utc_time)
 {
@@ -1176,7 +1317,15 @@ bool EvohomeClient::set_system_mode(std::string systemId, int mode, std::string 
 			return false;
 		data << ",\"TimeUntil\":\"" << date_until.substr(0,10) << "T00:00:00Z\",\"Permanent\":false}";
 	}
-	std::string s_res = put_receive_data(url.str(), data.str(), evoheader);
+	std::string s_res;
+	try
+	{
+		s_res = put_receive_data(url.str(), data.str(), evoheader);
+	}
+	catch (...)
+	{
+		throw;
+	}
 	if (s_res.find("\"id\""))
 		return true;
 	return false;
@@ -1202,7 +1351,15 @@ bool EvohomeClient::set_temperature(std::string zoneId, std::string temperature,
 			return false;
 		data << ",\"SetpointMode\":2,\"TimeUntil\":\"" << time_until.substr(0,10) << "T" << time_until.substr(11,8) << "Z\"}";
 	}
-	std::string s_res = put_receive_data(url.str(), data.str(), evoheader);
+	std::string s_res;
+	try
+	{
+		s_res = put_receive_data(url.str(), data.str(), evoheader);
+	}
+	catch (...)
+	{
+		throw;
+	}
 	if (s_res.find("\"id\""))
 		return true;
 	return false;
@@ -1222,7 +1379,15 @@ bool EvohomeClient::cancel_temperature_override(std::string zoneId)
 	std::stringstream url;
 	url << "/WebAPI/emea/api/v1/temperatureZone/" << zoneId << "/heatSetpoint";
 	std::string s_data = "{\"HeatSetpointValue\":0.0,\"SetpointMode\":0,\"TimeUntil\":null}";
-	std::string s_res = put_receive_data(url.str(), s_data, evoheader);
+	std::string s_res;
+	try
+	{
+		s_res = put_receive_data(url.str(), s_data, evoheader);
+	}
+	catch (...)
+	{
+		throw;
+	}
 	if (s_res.find("\"id\""))
 		return true;
 	return false;
@@ -1277,7 +1442,15 @@ bool EvohomeClient::set_dhw_mode(std::string dhwId, std::string mode, std::strin
 	}
 	std::stringstream url;
 	url << "/WebAPI/emea/api/v1/domesticHotWater/" << dhwId << "/state";
-	std::string s_res = put_receive_data(url.str(), data.str(), evoheader);
+	std::string s_res;
+	try
+	{
+		s_res = put_receive_data(url.str(), data.str(), evoheader);
+	}
+	catch (...)
+	{
+		throw;
+	}
 	if (s_res.find("\"id\""))
 		return true;
 	return false;

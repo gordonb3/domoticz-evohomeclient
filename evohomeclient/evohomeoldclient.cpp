@@ -68,7 +68,33 @@ std::string EvohomeOldClient::send_receive_data(std::string url, std::string pos
 {
 	std::stringstream ss_url;
 	ss_url << EVOHOME_HOST << url;
-	return web_send_receive_data("old_evohome", ss_url.str(), postdata, header);
+	std::string s_res;
+	try
+	{
+		s_res = web_send_receive_data("old_evohome", ss_url.str(), postdata, header);
+	}
+	catch (...)
+	{
+		throw;
+	}
+
+	if (s_res.find("<title>") != std::string::npos) // got an HTML page
+	{
+		std::stringstream ss_err;
+		ss_err << "Bad return: ";
+		int i = s_res.find("<title>");
+		char* html = &s_res[i];
+		i = 7;
+		char c = html[i];
+		while (c != '<')
+		{
+			ss_err << c;
+			i++;
+			c = html[i];
+		}
+		throw std::invalid_argument( ss_err.str() );
+	}
+	return s_res;
 }
 
 
@@ -91,24 +117,14 @@ bool EvohomeOldClient::login(std::string user, std::string password)
 	std::stringstream pdata;
 	pdata << "{'Username': '" << user << "', 'Password': '" << password << "'";
 	pdata << ", 'ApplicationId': '91db1612-73fd-4500-91b2-e63b069b185c'}";
-	std::string s_res = send_receive_data("/WebAPI/api/Session", pdata.str(), lheader);
-
-	if (s_res.find("<title>") != std::string::npos) // got an HTML page
+	std::string s_res;
+	try
 	{
-		std::cerr << "Login to Evohome server failed - server responds: ";
-		int i = s_res.find("<title>");
-		char* html = &s_res[i];
-		i = 7;
-		char c = html[i];
-		std::stringstream edata;
-		while (c != '<')
-		{
-			std::cout << c;
-			i++;
-			c = html[i];
-		}
-		std::cout << "\n";
-		return false;
+		s_res = send_receive_data("/WebAPI/api/Session", pdata.str(), lheader);
+	}
+	catch (...)
+	{
+		throw;
 	}
 
 	if (s_res[0] == '[') // got unnamed array as reply
@@ -170,7 +186,14 @@ bool EvohomeOldClient::full_installation()
 
 	// evohome 'old' interface does not correctly format the json output
 	std::stringstream ss_jdata;
-	ss_jdata << "{\"locations\": " << send_receive_data(url.str(), evoheader) << "}";
+	try
+	{
+		ss_jdata << "{\"locations\": " << send_receive_data(url.str(), evoheader) << "}";
+	}
+	catch (...)
+	{
+		throw;
+	}
 	Json::Reader jReader;
 	if (!jReader.parse(ss_jdata.str(), j_fi))
 		return false;
@@ -186,8 +209,20 @@ bool EvohomeOldClient::full_installation()
 
 std::string EvohomeOldClient::get_zone_temperature(std::string locationId, std::string zoneId, int decimals)
 {
-	if ((locations.size() == 0) && !full_installation())
-		return "";
+	if (locations.size() == 0)
+	{
+		bool got_fi;
+		try
+		{
+			got_fi = full_installation();
+		}
+		catch (...)
+		{
+			throw;
+		}
+		if (!got_fi)
+			return "";
+	}
 
 	int multiplier = (decimals >= 2) ? 100:10;
 
