@@ -18,12 +18,15 @@
 class EvohomeClient
 {
 	private:
-	std::map<std::string,std::string> account_info;
-
+	std::string v2uid;
 	std::vector<std::string> evoheader;
+	int tzoffset;
+	int lastDST;
+
 	std::string send_receive_data(std::string url, std::vector<std::string> &header);
 	std::string send_receive_data(std::string url, std::string postdata, std::vector<std::string> &header);
 	std::string put_receive_data(std::string url, std::string putdata, std::vector<std::string> &header);
+	std::string send_receive_data(std::string url, std::string postdata, std::vector<std::string> &header, std::string method);
 
 	void init();
 	bool user_account();
@@ -43,7 +46,6 @@ class EvohomeClient
 		Json::Value *installationInfo;
 		Json::Value *status;
 		Json::Value schedule;
-		std::string hdtemp;
 	};
 
 	struct temperatureControlSystem
@@ -101,10 +103,10 @@ class EvohomeClient
 	bool schedules_backup(std::string filename);
 	bool schedules_restore(std::string filename);
 	bool read_schedules_from_file(std::string filename);
-	bool get_schedule(std::string zoneId);
-	bool set_schedule(std::string zoneId, std::string zoneType, Json::Value *schedule);
-	bool set_zone_schedule(std::string zoneId, Json::Value *schedule);
+	bool get_zone_schedule(std::string zoneId);
 	bool set_dhw_schedule(std::string zoneId, Json::Value *schedule);
+	bool set_zone_schedule(std::string zoneId, Json::Value *schedule);
+	bool set_zone_schedule(std::string zoneId, std::string zoneType, Json::Value *schedule);
 
 	std::string get_next_switchpoint(temperatureControlSystem* tcs, int zone);
 	std::string get_next_switchpoint(zone* hz);
@@ -113,9 +115,16 @@ class EvohomeClient
 	std::string get_next_switchpoint_ex(Json::Value &schedule, std::string &current_setpoint);
 	std::string get_next_switchpoint_ex(Json::Value &schedule, std::string &current_setpoint, int force_weekday);
 
+	std::string get_next_switchpoint_ex(Json::Value &schedule, std::string &current_setpoint, int force_weekday, bool convert_to_utc);
+	std::string get_next_utcswitchpoint(EvohomeClient::temperatureControlSystem* tcs, int zone);
+	std::string get_next_utcswitchpoint(zone* hz);
+	std::string get_next_utcswitchpoint(std::string zoneId);
+	std::string get_next_utcswitchpoint(Json::Value &schedule);
+	std::string get_next_utcswitchpoint_ex(Json::Value &schedule, std::string &current_setpoint);
+	std::string get_next_utcswitchpoint_ex(Json::Value &schedule, std::string &current_setpoint, int force_weekday);
+
 	bool set_system_mode(std::string systemId, int mode, std::string date_until);
 	bool set_system_mode(std::string systemId, int mode);
-
 	bool set_system_mode(std::string systemId, std::string mode, std::string date_until);
 	bool set_system_mode(std::string systemId, std::string mode);
 
@@ -127,6 +136,11 @@ class EvohomeClient
 	bool set_dhw_mode(std::string systemId, std::string mode);
 
 	std::string request_next_switchpoint(std::string zoneId);
+
+	bool verify_date(std::string date);
+	bool verify_datetime(std::string datetime);
+	std::string local_to_utc(std::string local_time);
+	std::string utc_to_local(std::string utc_time);
 };
 
 #endif

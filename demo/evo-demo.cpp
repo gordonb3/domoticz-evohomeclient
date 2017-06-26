@@ -130,6 +130,7 @@ int main(int argc, char** argv)
 		{
 //			zone["until"] = eclient.request_next_switchpoint(zone["zoneId"]); // ask web portal (UTC)
 			zone["until"] = eclient.get_next_switchpoint(zone["zoneId"]); // find in schedule (localtime)
+//			zone["until"] = eclient.get_next_utcswitchpoint(zone["zoneId"]); // find in schedule (UTC)
 
 			// get_next_switchpoint returns an assumed time zone indicator 'A' which only means to
 			// differentiate from the UTC time zone indicator 'Z'. It's beyond the scope of this demo

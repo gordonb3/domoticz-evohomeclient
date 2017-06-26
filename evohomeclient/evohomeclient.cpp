@@ -46,21 +46,24 @@ EvohomeClient::EvohomeClient(std::string user, std::string password)
 {
 	init();
 	if (!login(user, password))
-		throw std::invalid_argument( "" );
+		throw std::invalid_argument( "login fail" );
 }
 
 
 /************************************************************************
  *									*
- *	Curl helpers							*
+ *	Webclient helpers						*
  *									*
  ************************************************************************/
 
 /*
- * Initialize curl web client
+ * Initialize
+ * Throws std::runtime_error from (#webclient) web_connection_init
  */
 void EvohomeClient::init()
 {
+	tzoffset = -1;
+	lastDST = -1;
 	web_connection_init("evohome");
 }
 
@@ -73,29 +76,47 @@ void EvohomeClient::cleanup()
 	web_connection_cleanup("evohome");
 }
 
+
 /*
  * Execute web query
+ * Throws std::invalid_argument
  */
 std::string EvohomeClient::send_receive_data(std::string url, std::vector<std::string> &header)
 {
 	return send_receive_data(url, "", header);
 }
-
 std::string EvohomeClient::send_receive_data(std::string url, std::string postdata, std::vector<std::string> &header)
 {
-
-	std::stringstream ss_url;
-	ss_url << EVOHOME_HOST << url;
-	return web_send_receive_data("evohome", ss_url.str(), postdata, header);
+	return send_receive_data(url, postdata, header, "POST");
 }
-
 std::string EvohomeClient::put_receive_data(std::string url, std::string putdata, std::vector<std::string> &header)
 {
-
+	return send_receive_data(url, putdata, header, "PUT");
+}
+std::string EvohomeClient::send_receive_data(std::string url, std::string postdata, std::vector<std::string> &header, std::string method)
+{
 	std::stringstream ss_url;
 	ss_url << EVOHOME_HOST << url;
-	return web_send_receive_data("evohome", ss_url.str(), putdata, header, "PUT");
+	std::string s_res = web_send_receive_data("evohome", ss_url.str(), postdata, header, method);
+	if (s_res.find("<title>") != std::string::npos) // got an HTML page
+	{
+		std::stringstream ss_err;
+		ss_err << "Bad response: ";
+		int i = s_res.find("<title>");
+		char* html = &s_res[i];
+		i = 7;
+		char c = html[i];
+		while (c != '<')
+		{
+			ss_err << c;
+			i++;
+			c = html[i];
+		}
+		throw std::invalid_argument( ss_err.str() );
+	}
+	return s_res;
 }
+
 
 /************************************************************************
  *									*
@@ -103,6 +124,10 @@ std::string EvohomeClient::put_receive_data(std::string url, std::string putdata
  *									*
  ************************************************************************/
 
+/* 
+ * Retrieve evohome user info
+ * Throws std::invalid_argument from (web) send_receive_data
+ */
 bool EvohomeClient::login(std::string user, std::string password)
 {
 	std::vector<std::string> lheader;
@@ -122,25 +147,6 @@ bool EvohomeClient::login(std::string user, std::string password)
 	pdata << "&Connection=Keep-Alive";
 
 	std::string s_res = send_receive_data("/Auth/OAuth/Token", pdata.str(), lheader);
-	if (s_res.find("<title>") != std::string::npos) // got an HTML page
-	{
-		std::stringstream ss_err;
-		ss_err << "Login to Evohome server failed - server responds: ";
-		int i = s_res.find("<title>");
-		char* html = &s_res[i];
-		i = 7;
-		char c = html[i];
-		while (c != '<')
-		{
-			ss_err << c;
-			i++;
-			c = html[i];
-		}
-		web_connection_cleanup("evohome");
-		throw std::invalid_argument( ss_err.str() );
-		return false;
-	}
-
 	if (s_res[0] == '[') // got unnamed array as reply
 	{
 		s_res[0] = ' ';
@@ -179,10 +185,10 @@ bool EvohomeClient::login(std::string user, std::string password)
 
 /* 
  * Retrieve evohome user info
+ * Throws std::invalid_argument from (web) send_receive_data
  */
 bool EvohomeClient::user_account()
 {
-	account_info.clear();
 	std::string s_res = send_receive_data("/WebAPI/emea/api/v1/userAccount", evoheader);
 	if (s_res[0] == '[') // got unnamed array as reply
 	{
@@ -196,7 +202,7 @@ bool EvohomeClient::user_account()
 	if (!jReader.parse(s_res.c_str(), j_account) || !j_account.isMember("userId"))
 		return false;
 
-	account_info["userId"] = j_account["userId"].asString();
+	v2uid = j_account["userId"].asString();
 	return true;
 }
 
@@ -245,7 +251,7 @@ void EvohomeClient::get_temperatureControlSystems(int location, int gateway)
 		locations[location].gateways[gateway].temperatureControlSystems[i].gatewayId = locations[location].gateways[gateway].gatewayId;
 		locations[location].gateways[gateway].temperatureControlSystems[i].locationId = locations[location].locationId;
 
-		get_zones(location, gateway, i);
+		get_zones(location, gateway, (int)(i));
 	}
 }
 
@@ -265,16 +271,20 @@ void EvohomeClient::get_gateways(int location)
 		locations[location].gateways[i].gatewayId = (*j_loc)["gateways"][(int)(i)]["gatewayInfo"]["gatewayId"].asString();
 		locations[location].gateways[i].locationId = locations[location].locationId;
 
-		get_temperatureControlSystems(location, i);
+		get_temperatureControlSystems(location, (int)(i));
 	}
 }
 
 
+/* 
+ * Retrieve evohome installation info
+ * Throws std::invalid_argument from (web) send_receive_data
+ */
 bool EvohomeClient::full_installation()
 {
 	locations.clear();
 	std::stringstream url;
-	url << "/WebAPI/emea/api/v1/location/installationInfo?userId=" << account_info["userId"] << "&includeTemperatureControlSystems=True";
+	url << "/WebAPI/emea/api/v1/location/installationInfo?userId=" << v2uid << "&includeTemperatureControlSystems=True";
 
 	// evohome v1 interface does not correctly format the json output
 	std::stringstream ss_jdata;
@@ -290,7 +300,7 @@ bool EvohomeClient::full_installation()
 		locations[i].installationInfo = &j_fi["locations"][(int)(i)];
 		locations[i].locationId = j_fi["locations"][(int)(i)]["locationInfo"]["locationId"].asString();
 
-		get_gateways(i);
+		get_gateways((int)(i));
 	}
 	return true;
 }
@@ -302,6 +312,10 @@ bool EvohomeClient::full_installation()
  *									*
  ************************************************************************/
 
+/* 
+ * Retrieve evohome status info
+ * Throws std::invalid_argument from (web) send_receive_data
+ */
 bool EvohomeClient::get_status(std::string locationId)
 {
 	if (locations.size() == 0)
@@ -356,7 +370,6 @@ bool EvohomeClient::get_status(int location)
 						for (size_t iz = 0; iz < lz; iz++)
 						{
 							locations[location].gateways[igw].temperatureControlSystems[itcs].zones[iz].status = &(*j_tcs)["zones"][(int)(iz)];
-							locations[location].gateways[igw].temperatureControlSystems[itcs].zones[iz].hdtemp="";
 						}
 					}
 					else
@@ -376,7 +389,7 @@ bool EvohomeClient::get_status(int location)
 
 /************************************************************************
  *									*
- *	Schedule handlers						*
+ *	Locate Evohome elements						*
  *									*
  ************************************************************************/
 
@@ -385,7 +398,7 @@ EvohomeClient::location* EvohomeClient::get_location_by_ID(std::string locationI
 {
 	if (locations.size() == 0)
 		full_installation();
-	unsigned int l;
+	size_t l;
 	for (l = 0; l < locations.size(); l++)
 	{
 		if (locations[l].locationId == locationId)
@@ -399,7 +412,7 @@ EvohomeClient::gateway* EvohomeClient::get_gateway_by_ID(std::string gatewayId)
 {
 	if (locations.size() == 0)
 		full_installation();
-	unsigned int l,g;
+	size_t l,g;
 	for (l = 0; l < locations.size(); l++)
 	{
 		for (g = 0; g < locations[l].gateways.size(); g++)
@@ -416,7 +429,7 @@ EvohomeClient::temperatureControlSystem* EvohomeClient::get_temperatureControlSy
 {
 	if (locations.size() == 0)
 		full_installation();
-	unsigned int l,g,t;
+	size_t l,g,t;
 	for (l = 0; l < locations.size(); l++)
 	{
 		for (g = 0; g < locations[l].gateways.size(); g++)
@@ -436,7 +449,7 @@ EvohomeClient::zone* EvohomeClient::get_zone_by_ID(std::string zoneId)
 {
 	if (locations.size() == 0)
 		full_installation();
-	unsigned int l,g,t,z;
+	size_t l,g,t,z;
 	for (l = 0; l < locations.size(); l++)
 	{
 		for (g = 0; g < locations[l].gateways.size(); g++)
@@ -457,17 +470,20 @@ EvohomeClient::zone* EvohomeClient::get_zone_by_ID(std::string zoneId)
 
 EvohomeClient::temperatureControlSystem* EvohomeClient::get_zone_temperatureControlSystem(EvohomeClient::zone* zone)
 {
-	unsigned int l,g,t,z;
+	size_t l,g,t;
 	for (l = 0; l < locations.size(); l++)
 	{
-		for (g = 0; g < locations[l].gateways.size(); g++)
+		if (locations[l].locationId != zone->locationId)
 		{
-			for (t = 0; t < locations[l].gateways[g].temperatureControlSystems.size(); t++)
+			for (g = 0; g < locations[l].gateways.size(); g++)
 			{
-				for (z = 0; z < locations[l].gateways[g].temperatureControlSystems[t].zones.size(); z++)
+				if (locations[l].gateways[g].gatewayId != zone->gatewayId)
 				{
-					if (locations[l].gateways[g].temperatureControlSystems[t].zones[z].zoneId == zone->zoneId)
-						return &locations[l].gateways[g].temperatureControlSystems[t];
+					for (t = 0; t < locations[l].gateways[g].temperatureControlSystems.size(); t++)
+					{
+						if (locations[l].gateways[g].temperatureControlSystems[t].systemId == zone->systemId)
+							return &locations[l].gateways[g].temperatureControlSystems[t];
+					}
 				}
 			}
 		}
@@ -476,6 +492,18 @@ EvohomeClient::temperatureControlSystem* EvohomeClient::get_zone_temperatureCont
 }
 
 
+/************************************************************************
+ *									*
+ *	Schedule handlers						*
+ *									*
+ ************************************************************************/
+
+/*
+ * Retrieve a zone's next switchpoint
+ * Throws std::invalid_argument from (web) send_receive_data
+ *
+ * Returns ISO datatime string relative to UTC (timezone 'Z')
+ */
 std::string EvohomeClient::request_next_switchpoint(std::string zoneId)
 {
 	std::stringstream url;
@@ -500,7 +528,11 @@ std::string EvohomeClient::request_next_switchpoint(std::string zoneId)
 }
 
 
-bool EvohomeClient::get_schedule(std::string zoneId)
+/*
+ * Retrieve a zone's schedule
+ * Throws std::invalid_argument from (web) send_receive_data
+ */
+bool EvohomeClient::get_zone_schedule(std::string zoneId)
 {
 	std::stringstream url;
 	url << "/WebAPI/emea/api/v1/temperatureZone/" << zoneId << "/schedule";
@@ -514,32 +546,43 @@ bool EvohomeClient::get_schedule(std::string zoneId)
 }
 
 
+/*
+ * Find a zone's next switchpoint (localtime)
+ * May throw std::invalid_argument if the zone's schedule was not fetched before calling this function
+ *
+ * Returns ISO datatime string relative to localtime (hardcoded as timezone 'A')
+ * Extended function also fills current_setpoint with the current target temperature
+ */
+std::string EvohomeClient::get_next_switchpoint(std::string zoneId)
+{
+	return get_next_switchpoint(get_zone_by_ID(zoneId));
+}
 std::string EvohomeClient::get_next_switchpoint(EvohomeClient::temperatureControlSystem* tcs, int zone)
 {
-	if ((tcs->zones[zone].schedule.isNull()) && !get_schedule(tcs->zones[zone].zoneId))
+	if ((tcs->zones[zone].schedule.isNull()) && !get_zone_schedule(tcs->zones[zone].zoneId))
 		return "";
 	return get_next_switchpoint(tcs->zones[zone].schedule);
 }
 std::string EvohomeClient::get_next_switchpoint(zone* hz)
 {
-	if ((hz->schedule.isNull()) && !get_schedule(hz->zoneId))
+	if ((hz->schedule.isNull()) && !get_zone_schedule(hz->zoneId))
 		return "";
 	return get_next_switchpoint(hz->schedule);
-}
-std::string EvohomeClient::get_next_switchpoint(std::string zoneId)
-{
-	return get_next_switchpoint(get_zone_by_ID(zoneId));
 }
 std::string EvohomeClient::get_next_switchpoint(Json::Value &schedule)
 {
 	std::string current_setpoint;
-	return get_next_switchpoint_ex(schedule, current_setpoint);
+	return get_next_switchpoint_ex(schedule, current_setpoint, -1, false);
 }
 std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::string &current_setpoint)
 {
-	return get_next_switchpoint_ex(schedule, current_setpoint, -1);
+	return get_next_switchpoint_ex(schedule, current_setpoint, -1, false);
 }
 std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::string &current_setpoint, int force_weekday)
+{
+	return get_next_switchpoint_ex(schedule, current_setpoint, -1, false);
+}
+std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::string &current_setpoint, int force_weekday, bool convert_to_utc)
 {
 	if (schedule.isNull())
 		return "";
@@ -552,12 +595,15 @@ std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::s
 	int day = ltime.tm_mday;
 	int wday = (force_weekday >= 0) ? (force_weekday % 7) : ltime.tm_wday;
 	char rdata[30];
-	sprintf_s(rdata, 30, "%04d-%02d-%02dT%02d:%02d:%02dZ", ltime.tm_year + 1900, ltime.tm_mon + 1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec);
+	sprintf_s(rdata, 30, "%04d-%02d-%02dT%02d:%02d:%02dA", ltime.tm_year + 1900, ltime.tm_mon + 1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec);
 	std::string szdatetime = std::string(rdata);
 	if (szdatetime <= schedule["nextSwitchpoint"].asString()) // our current cached values are still valid
 	{
 		current_setpoint = schedule["currentSetpoint"].asString();
-		return schedule["nextSwitchpoint"].asString();
+		if (convert_to_utc)
+			return local_to_utc(schedule["nextSwitchpoint"].asString());
+		else
+			return schedule["nextSwitchpoint"].asString();
 	}
 
 	std::string sztime;
@@ -633,13 +679,56 @@ std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::s
 	szdatetime = std::string(rdata);
 	schedule["currentSetpoint"] = current_setpoint;
 	schedule["nextSwitchpoint"] = szdatetime;
-	return szdatetime;
+	if (convert_to_utc)
+		return local_to_utc(szdatetime);
+	else
+		return szdatetime;
+}
+
+
+/*
+ * Find a zone's next switchpoint (UTC)
+ * May throw std::invalid_argument if the zone's schedule was not fetched before calling this function
+ *
+ * Returns ISO datatime string relative to UTZ (timezone 'Z')
+ * Extended function also fills current_setpoint with the current target temperature
+ */
+std::string EvohomeClient::get_next_utcswitchpoint(std::string zoneId)
+{
+	return get_next_utcswitchpoint(get_zone_by_ID(zoneId));
+}
+std::string EvohomeClient::get_next_utcswitchpoint(EvohomeClient::temperatureControlSystem* tcs, int zone)
+{
+	if ((tcs->zones[zone].schedule.isNull()) && !get_zone_schedule(tcs->zones[zone].zoneId))
+		return "";
+	return get_next_utcswitchpoint(tcs->zones[zone].schedule);
+}
+std::string EvohomeClient::get_next_utcswitchpoint(zone* hz)
+{
+	if ((hz->schedule.isNull()) && !get_zone_schedule(hz->zoneId))
+		return "";
+	return get_next_utcswitchpoint(hz->schedule);
+}
+std::string EvohomeClient::get_next_utcswitchpoint(Json::Value &schedule)
+{
+	std::string current_setpoint;
+	return get_next_switchpoint_ex(schedule, current_setpoint, -1, true);
+}
+std::string EvohomeClient::get_next_utcswitchpoint_ex(Json::Value &schedule, std::string &current_setpoint)
+{
+	return get_next_switchpoint_ex(schedule, current_setpoint, -1, true);
+}
+std::string EvohomeClient::get_next_utcswitchpoint_ex(Json::Value &schedule, std::string &current_setpoint, int force_weekday)
+{
+	return get_next_switchpoint_ex(schedule, current_setpoint, force_weekday, true);
 }
 
 
 
-
-
+/*
+ * Backup all schedules to a file
+ * Throws std::invalid_argument from (web) send_receive_data
+ */
 bool EvohomeClient::schedules_backup(std::string filename)
 {
 	std::ofstream myfile (filename.c_str());
@@ -752,6 +841,9 @@ bool EvohomeClient::schedules_backup(std::string filename)
 }
 
 
+/*
+ * Load all schedules from a schedule backup file
+ */
 bool EvohomeClient::read_schedules_from_file(std::string filename)
 {
 	std::stringstream ss;
@@ -805,7 +897,19 @@ bool EvohomeClient::read_schedules_from_file(std::string filename)
 }
 
 
-bool EvohomeClient::set_schedule(std::string zoneId, std::string zoneType, Json::Value *schedule)
+/*
+ * Set a zone's schedule
+ * Throws std::invalid_argument from (web) send_receive_data
+ */
+bool EvohomeClient::set_zone_schedule(std::string zoneId, Json::Value *schedule)
+{
+	return set_zone_schedule(zoneId, "temperatureZone", schedule);
+}
+bool EvohomeClient::set_dhw_schedule(std::string zoneId, Json::Value *schedule)
+{
+	return set_zone_schedule(zoneId, "domesticHotWater", schedule);
+}
+bool EvohomeClient::set_zone_schedule(std::string zoneId, std::string zoneType, Json::Value *schedule)
 {
 	std::stringstream url;
 	url << "/WebAPI/emea/api/v1/" << zoneType << "/" << zoneId << "/schedule";
@@ -848,18 +952,10 @@ bool EvohomeClient::set_schedule(std::string zoneId, std::string zoneType, Json:
 }
 
 
-bool EvohomeClient::set_zone_schedule(std::string zoneId, Json::Value *schedule)
-{
-	return set_schedule(zoneId, "temperatureZone", schedule);
-}
-
-
-bool EvohomeClient::set_dhw_schedule(std::string zoneId, Json::Value *schedule)
-{
-	return set_schedule(zoneId, "domesticHotWater", schedule);
-}
-
-
+/*
+ * Restore all schedules from a backup file
+ * Throws std::invalid_argument from (web) send_receive_data
+ */
 bool EvohomeClient::schedules_restore(std::string filename)
 {
 	if ( ! read_schedules_from_file(filename) )
@@ -893,15 +989,15 @@ bool EvohomeClient::schedules_restore(std::string filename)
 
 /************************************************************************
  *									*
- *	Evohome overrides						*
+ *	Time functions							*
  *									*
  ************************************************************************/
 
-bool verify_date(std::string date)
+bool EvohomeClient::verify_date(std::string date)
 {
 	if (date.length() < 10)
 		return false;
-	std:: string s_date = date.substr(0,10);
+	std::string s_date = date.substr(0,10);
 	struct tm mtime;
 	mtime.tm_isdst = -1;
 	mtime.tm_year = atoi(date.substr(0, 4).c_str()) - 1900;
@@ -919,12 +1015,12 @@ bool verify_date(std::string date)
 }
 
 	
-bool verify_datetime(std::string datetime)
+bool EvohomeClient::verify_datetime(std::string datetime)
 {
 	if (datetime.length() < 19)
 		return false;
-	std:: string s_date = datetime.substr(0,10);
-	std:: string s_time = datetime.substr(11,8);
+	std::string s_date = datetime.substr(0,10);
+	std::string s_time = datetime.substr(11,8);
 	struct tm mtime;
 	mtime.tm_isdst = -1;
 	mtime.tm_year = atoi(datetime.substr(0, 4).c_str()) - 1900;
@@ -944,6 +1040,118 @@ bool verify_datetime(std::string datetime)
 }
 
 
+/*
+ * Convert a localtime ISO datetime string to UTC
+ * Throws std::invalid_argument from (web) send_receive_data
+ */
+std::string EvohomeClient::local_to_utc(std::string local_time)
+{
+	if (local_time.size() <  19)
+		return "";
+	if (tzoffset == -1)
+	{
+		// calculate timezone offset once
+		time_t now = time(0);
+		struct tm utime;
+		gmtime_r(&now, &utime);
+		utime.tm_isdst = -1;
+		tzoffset = (int)difftime(mktime(&utime), now);
+	}
+	struct tm ltime;
+	ltime.tm_isdst = -1;
+	ltime.tm_year = atoi(local_time.substr(0, 4).c_str()) - 1900;
+	ltime.tm_mon = atoi(local_time.substr(5, 2).c_str()) - 1;
+	ltime.tm_mday = atoi(local_time.substr(8, 2).c_str());
+	ltime.tm_hour = atoi(local_time.substr(11, 2).c_str());
+	ltime.tm_min = atoi(local_time.substr(14, 2).c_str());
+	ltime.tm_sec = atoi(local_time.substr(17, 2).c_str()) + tzoffset;
+	mktime(&ltime);
+	if (lastDST == -1)
+		lastDST = ltime.tm_isdst;
+	else if ((lastDST != ltime.tm_isdst) && (lastDST != -1)) // DST changed - must recalculate timezone offset
+	{
+		ltime.tm_hour -= (ltime.tm_isdst - lastDST);
+		lastDST = ltime.tm_isdst;
+		tzoffset = -1;
+	}
+	char until[22];
+	sprintf_s(until,22,"%04d-%02d-%02dT%02d:%02d:%02dZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,ltime.tm_hour,ltime.tm_min,ltime.tm_sec);
+	return std::string(until);
+}
+
+
+/*
+ * Convert a UTC ISO datetime string to localtime
+ * Throws std::invalid_argument from (web) send_receive_data
+ */
+std::string EvohomeClient::utc_to_local(std::string utc_time)
+{
+	if (utc_time.size() <  19)
+		return "";
+	if (tzoffset == -1)
+	{
+		// calculate timezone offset once
+		time_t now = time(0);
+		struct tm utime;
+		gmtime_r(&now, &utime);
+		tzoffset = (int)difftime(mktime(&utime), now);
+	}
+	struct tm ltime;
+	ltime.tm_isdst = -1;
+	ltime.tm_year = atoi(utc_time.substr(0, 4).c_str()) - 1900;
+	ltime.tm_mon = atoi(utc_time.substr(5, 2).c_str()) - 1;
+	ltime.tm_mday = atoi(utc_time.substr(8, 2).c_str());
+	ltime.tm_hour = atoi(utc_time.substr(11, 2).c_str());
+	ltime.tm_min = atoi(utc_time.substr(14, 2).c_str());
+	ltime.tm_sec = atoi(utc_time.substr(17, 2).c_str()) - tzoffset;
+	mktime(&ltime);
+	if (lastDST == -1)
+		lastDST = ltime.tm_isdst;
+	else if ((lastDST != ltime.tm_isdst) && (lastDST != -1)) // DST changed - must recalculate timezone offset
+	{
+		ltime.tm_hour += (ltime.tm_isdst - lastDST);
+		lastDST = ltime.tm_isdst;
+		tzoffset = -1;
+	}
+	char until[40];
+	sprintf_s(until,40,"%04d-%02d-%02dT%02d:%02d:%02dA",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,ltime.tm_hour,ltime.tm_min,ltime.tm_sec);
+	return std::string(until);
+}
+
+
+/************************************************************************
+ *									*
+ *	Evohome overrides						*
+ *									*
+ ************************************************************************/
+
+/* 
+ * Set the system mode
+ * Throws std::invalid_argument from (web) send_receive_data
+ *
+ * Note: setting an end date does not appear to work on most installations
+ */
+bool EvohomeClient::set_system_mode(std::string systemId, int mode)
+{
+	return set_system_mode(systemId, mode, "");
+}
+bool EvohomeClient::set_system_mode(std::string systemId, std::string mode)
+{
+	return set_system_mode(systemId, mode, "");
+}
+bool EvohomeClient::set_system_mode(std::string systemId, std::string mode, std::string date_until)
+{
+	int i = 0;
+	int s = sizeof(evo_modes);
+	while (s > 0)
+	{
+		if (evo_modes[i] == mode)
+			return set_system_mode(systemId, i, date_until);
+		s -= sizeof(evo_modes[i]);
+		i++;
+	}
+	return false;
+}
 bool EvohomeClient::set_system_mode(std::string systemId, int mode, std::string date_until)
 {
 	std::stringstream url;
@@ -963,30 +1171,13 @@ bool EvohomeClient::set_system_mode(std::string systemId, int mode, std::string 
 		return true;
 	return false;
 }
-bool EvohomeClient::set_system_mode(std::string systemId, int mode)
-{
-	return set_system_mode(systemId, mode, "");
-}
-bool EvohomeClient::set_system_mode(std::string systemId, std::string mode, std::string date_until)
-{
-	int i = 0;
-	int s = sizeof(evo_modes);
-	while (s > 0)
-	{
-		if (evo_modes[i] == mode)
-			return set_system_mode(systemId, i, date_until);
-		s -= sizeof(evo_modes[i]);
-		i++;
-	}
-	return false;
-}
-bool EvohomeClient::set_system_mode(std::string systemId, std::string mode)
-{
-	return set_system_mode(systemId, mode, "");
-}
 
 
 
+/* 
+ * Override a zone's target temperature
+ * Throws std::invalid_argument from (web) send_receive_data
+ */
 bool EvohomeClient::set_temperature(std::string zoneId, std::string temperature, std::string time_until)
 {
 	std::stringstream url;
@@ -1012,6 +1203,10 @@ bool EvohomeClient::set_temperature(std::string zoneId, std::string temperature)
 }
 
 
+/* 
+ * Cancel a zone's target temperature override
+ * Throws std::invalid_argument from (web) send_receive_data
+ */
 bool EvohomeClient::cancel_temperature_override(std::string zoneId)
 {
 	std::stringstream url;
@@ -1045,6 +1240,10 @@ bool EvohomeClient::is_single_heating_system()
 }
 
 
+/* 
+ * Set mode for Hot Water device
+ * Throws std::invalid_argument from (web) send_receive_data
+ */
 bool EvohomeClient::set_dhw_mode(std::string dhwId, std::string mode, std::string time_until)
 {
 	std::stringstream data;
