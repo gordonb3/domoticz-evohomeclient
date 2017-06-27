@@ -60,6 +60,11 @@ EvohomeClient::EvohomeClient(std::string user, std::string password)
 }
 
 
+EvohomeClient::~EvohomeClient()
+{
+	cleanup();
+}
+
 /************************************************************************
  *									*
  *	Webclient helpers						*

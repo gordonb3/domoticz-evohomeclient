@@ -40,6 +40,7 @@ class DomoticzClient
 	std::map<std::string,device> devices;
 
 	DomoticzClient(std::string host);
+	~DomoticzClient();
 	void cleanup();
 
 	int get_hwid(int hw_type);

@@ -83,6 +83,7 @@ class EvohomeClient
 
 	EvohomeClient();
 	EvohomeClient(std::string user, std::string password);
+	~EvohomeClient();
 	void cleanup();
 
 	bool login(std::string user, std::string password);

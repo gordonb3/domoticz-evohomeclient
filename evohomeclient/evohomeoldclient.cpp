@@ -32,6 +32,10 @@ EvohomeOldClient::EvohomeOldClient(std::string user, std::string password)
 	login(user, password);
 }
 
+EvohomeOldClient::~EvohomeOldClient()
+{
+	cleanup();
+}
 
 /************************************************************************
  *									*

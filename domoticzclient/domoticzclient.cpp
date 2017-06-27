@@ -29,6 +29,11 @@ DomoticzClient::DomoticzClient(std::string host)
 	init();
 }
 
+DomoticzClient::~DomoticzClient()
+{
+	cleanup();
+}
+
 /************************************************************************
  *									*
  *	Curl helpers							*
