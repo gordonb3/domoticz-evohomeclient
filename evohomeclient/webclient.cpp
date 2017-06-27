@@ -49,6 +49,8 @@ size_t curl_write_cb(char* ptr, size_t size, size_t nmemb, void *userdata)
  */
 void web_connection_init(std::string connection)
 {
+	if (curl_connections.find(connection) != curl_connections.end()) // connection already exists
+		return;
 	CURL *conn;
 	if (curl_connections.size() == 0)
 	{
@@ -74,6 +76,8 @@ void web_connection_init(std::string connection)
  */
 void web_connection_cleanup(std::string connection)
 {
+	if (curl_connections.find(connection) == curl_connections.end()) // connection does not exist
+		return;
 	CURL *conn = curl_connections[connection];
 	curl_easy_cleanup(conn);
 	curl_connections.erase(connection);
@@ -109,6 +113,11 @@ std::string web_send_receive_data(std::string connection, std::string url, std::
 }
 std::string web_send_receive_data(std::string connection, std::string url, std::string postdata, std::vector<std::string> &header, std::string method)
 {
+	if (curl_connections.find(connection) == curl_connections.end()) // connection does not exist
+	{
+		throw std::invalid_argument( "curl connection is not initialized" );
+	}
+
 	struct curl_slist *httpheader = NULL;
 	if (header.size() > 0)
 	{
