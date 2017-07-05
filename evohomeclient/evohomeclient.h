@@ -10,7 +10,6 @@
 #ifndef _EvohomeClient
 #define _EvohomeClient
 
-#include <map>
 #include <vector>
 #include <string>
 #include "jsoncpp/json.h"
@@ -39,44 +38,44 @@ class EvohomeClient
 	public:
 	struct zone
 	{
+		Json::Value *installationInfo;
+		Json::Value *status;
 		std::string locationId;
 		std::string gatewayId;
 		std::string systemId;
 		std::string zoneId;
-		Json::Value *installationInfo;
-		Json::Value *status;
 		Json::Value schedule;
 	};
 
 	struct temperatureControlSystem
 	{
+		std::vector<zone> zones;
+		Json::Value *installationInfo;
+		Json::Value *status;
 		std::string locationId;
 		std::string gatewayId;
 		std::string systemId;
-		Json::Value *installationInfo;
-		Json::Value *status;
-		std::map<int, zone> zones;
 	};
 
 	struct gateway
 	{
-		std::string locationId;
-		std::string gatewayId;
+		std::vector<temperatureControlSystem> temperatureControlSystems;
 		Json::Value *installationInfo;
 		Json::Value *status;
-		std::map<int, temperatureControlSystem> temperatureControlSystems;
+		std::string locationId;
+		std::string gatewayId;
 	};
 
 
 	struct location
 	{
-		std::string locationId;
+		std::vector<gateway> gateways;
 		Json::Value *installationInfo;
 		Json::Value *status;
-		std::map<int, gateway> gateways;
+		std::string locationId;
 	};
 
-	std::map<int, location> locations;
+	std::vector<location> locations;
 	Json::Value j_fi;
 	Json::Value j_stat;
 

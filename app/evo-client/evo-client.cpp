@@ -892,11 +892,12 @@ void cmd_update()
 	bool heating_off=(systemdata["systemMode"]=="HeatingOff");
 
 	// Update zones
-	for (std::map<int, EvohomeClient::zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
+//	for (std::map<int, EvohomeClient::zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
+	for (std::vector<EvohomeClient::zone>::size_type i = 0; i < tcs->zones.size(); ++i)
 	{
-		std::map<std::string, std::string> zonedata = evo_get_zone_data(tcs, it->first);
+		std::map<std::string, std::string> zonedata = evo_get_zone_data(tcs, i);
 		if (zonedata["until"].length() == 0)
-			zonedata["until"] = local_to_utc(eclient.get_next_switchpoint(tcs, it->first));
+			zonedata["until"] = local_to_utc(eclient.get_next_switchpoint(tcs, i));
 		update_zone(dclient, zonedata, heating_off);
 	}
 
@@ -940,7 +941,7 @@ void cmd_backup_and_restore_schedules()
 std::string format_time(std::string utc_time)
 {
 	struct tm ltime;
-	if (utc_time[0] == '0') // Domoticz now sinds illegal timestamp '0-00-00T00:00:00' to indicate permanent
+	if (utc_time[0] == '0') // Domoticz now sends illegal timestamp '0-00-00T00:00:00' to indicate permanent
 		return "";
 	if (utc_time[0] == '+')
 	{
@@ -1011,18 +1012,18 @@ void cancel_temperature_override()
 	get_evohome_devices(dclient, hwid);
 
 	// update zone
-	for (std::map<int, EvohomeClient::zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
+	for (std::vector<EvohomeClient::zone>::size_type i = 0; i < tcs->zones.size(); ++i)
 	{
-		if (parameters[1] == it->second.zoneId)
+		if (parameters[1] == tcs->zones[i].zoneId)
 		{
 			log("update Domoticz zone status with schedule information");
 			std::map<std::string, std::string> zonedata;
-			zonedata["idx"] = dclient.devices[it->second.zoneId].idx;
-			zonedata["temperature"] = dclient.devices[it->second.zoneId].Temp;
+			zonedata["idx"] = dclient.devices[tcs->zones[i].zoneId].idx;
+			zonedata["temperature"] = dclient.devices[tcs->zones[i].zoneId].Temp;
 			zonedata["setpointMode"] = "FollowSchedule";
-			zonedata["zoneId"] = it->second.zoneId;
-			zonedata["name"] = dclient.devices[it->second.zoneId].Name;
-			zonedata["until"] = eclient.get_next_switchpoint_ex(tcs->zones[it->first].schedule, zonedata["targetTemperature"]);
+			zonedata["zoneId"] = tcs->zones[i].zoneId;
+			zonedata["name"] = dclient.devices[tcs->zones[i].zoneId].Name;
+			zonedata["until"] = eclient.get_next_switchpoint_ex(tcs->zones[i].schedule, zonedata["targetTemperature"]);
 			update_zone(dclient, zonedata, false);
 		}
 	}

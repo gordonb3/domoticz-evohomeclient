@@ -262,13 +262,14 @@ bool EvohomeClient::user_account()
 
 void EvohomeClient::get_zones(int location, int gateway, int temperatureControlSystem)
 {
-	locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem].zones.clear();
+	std::vector<zone>().swap(locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem].zones);
 	Json::Value *j_tcs = locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem].installationInfo;
 
 	if (!(*j_tcs)["zones"].isArray())
 		return;
 
 	size_t l = (*j_tcs)["zones"].size();
+	locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem].zones.resize(l);
 	for (size_t i = 0; i < l; ++i)
 	{
 		locations[location].gateways[gateway].temperatureControlSystems[temperatureControlSystem].zones[i].installationInfo = &(*j_tcs)["zones"][(int)(i)];
@@ -284,13 +285,14 @@ void EvohomeClient::get_zones(int location, int gateway, int temperatureControlS
 
 void EvohomeClient::get_temperatureControlSystems(int location, int gateway)
 {
-	locations[location].gateways[gateway].temperatureControlSystems.clear();
+	std::vector<temperatureControlSystem>().swap(locations[location].gateways[gateway].temperatureControlSystems);
 	Json::Value *j_gw = locations[location].gateways[gateway].installationInfo;
 
 	if (!(*j_gw)["temperatureControlSystems"].isArray())
 		return;
 
 	size_t l = (*j_gw)["temperatureControlSystems"].size();
+	locations[location].gateways[gateway].temperatureControlSystems.resize(l);
 	for (size_t i = 0; i < l; ++i)
 	{
 		locations[location].gateways[gateway].temperatureControlSystems[i].installationInfo = &(*j_gw)["temperatureControlSystems"][(int)(i)];
@@ -305,13 +307,14 @@ void EvohomeClient::get_temperatureControlSystems(int location, int gateway)
 
 void EvohomeClient::get_gateways(int location)
 {
-	locations[location].gateways.clear();
+	std::vector<gateway>().swap(locations[location].gateways);
 	Json::Value *j_loc = locations[location].installationInfo;
 
 	if (!(*j_loc)["gateways"].isArray())
 		return;
 
 	size_t l = (*j_loc)["gateways"].size();
+	locations[location].gateways.resize(l);
 	for (size_t i = 0; i < l; ++i)
 	{
 		locations[location].gateways[i].installationInfo = &(*j_loc)["gateways"][(int)(i)];
@@ -329,7 +332,7 @@ void EvohomeClient::get_gateways(int location)
  */
 bool EvohomeClient::full_installation()
 {
-	locations.clear();
+	std::vector<location>().swap(locations);
 	std::stringstream url;
 	url << "/WebAPI/emea/api/v1/location/installationInfo?userId=" << v2uid << "&includeTemperatureControlSystems=True";
 
@@ -351,6 +354,8 @@ bool EvohomeClient::full_installation()
 	size_t l = j_fi["locations"].size();
 	for (size_t i = 0; i < l; ++i)
 	{
+		location newloc = location();
+		locations.push_back(newloc);
 		locations[i].installationInfo = &j_fi["locations"][(int)(i)];
 		locations[i].locationId = j_fi["locations"][(int)(i)]["locationInfo"]["locationId"].asString();
 

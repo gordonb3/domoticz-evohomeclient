@@ -282,11 +282,11 @@ int main(int argc, char** argv)
 		dclient.get_devices(hwid);
 
 		// update zone
-		for (std::map<int, EvohomeClient::zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
+		for (std::vector<EvohomeClient::zone>::size_type i = 0; i < tcs->zones.size(); ++i)
 		{
-			if (string(argv[1]) == it->second.zoneId) {
-				std::map<std::string, std::string> zonedata = evo_get_zone_data(tcs, it->first);
-				zonedata["until"] = eclient.get_next_switchpoint_ex(tcs->zones[it->first].schedule, zonedata["temperature"]);
+			if (string(argv[1]) == tcs->zones[i].zoneId) {
+				std::map<std::string, std::string> zonedata = evo_get_zone_data(tcs, i);
+				zonedata["until"] = eclient.get_next_switchpoint_ex(tcs->zones[i].schedule, zonedata["temperature"]);
 				update_zone(dclient, zonedata);
 			}
 		}

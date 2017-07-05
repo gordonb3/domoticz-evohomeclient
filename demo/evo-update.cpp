@@ -520,11 +520,11 @@ int main(int argc, char** argv)
 
 
 	// Update zones
-	for (std::map<int, EvohomeClient::zone>::iterator it=tcs->zones.begin(); it!=tcs->zones.end(); ++it)
+	for (std::vector<EvohomeClient::zone>::size_type i = 0; i < tcs->zones.size(); ++i)
 	{
-		std::map<std::string, std::string> zonedata = evo_get_zone_data(tcs, it->first);
+		std::map<std::string, std::string> zonedata = evo_get_zone_data(tcs, i);
 		if (zonedata["until"].length() == 0)
-			zonedata["until"] = local_to_utc(eclient.get_next_switchpoint(tcs, it->first));
+			zonedata["until"] = local_to_utc(eclient.get_next_switchpoint(tcs, i));
 		update_zone(dclient, zonedata);
 	}
 
