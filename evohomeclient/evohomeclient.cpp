@@ -317,6 +317,7 @@ void EvohomeClient::get_temperatureControlSystems(int location, int gateway)
 		locations[location].gateways[gateway].temperatureControlSystems[i].locationId = locations[location].locationId;
 
 		get_zones(location, gateway, (int)(i));
+		get_dhw(location, gateway, (int)(i));
 	}
 }
 
