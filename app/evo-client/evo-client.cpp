@@ -151,7 +151,7 @@ void usage(std::string mode)
 	cout << "Parameters for set arguments:\n";
 	cout << " --set-mode <system mode> [time until] [+duration]\n";
 	cout << " --set-temp <zone id> <setpoint mode> <target temperature> [time until] [+duration]\n";
-	cout << " --set-dhw  <zone id> <dhw status> [time until] [+duration]\n";
+	cout << " --set-dhw  <dhw id> <dhw status> [time until] [+duration]\n";
 	cout << endl;
 	exit(0);
 }

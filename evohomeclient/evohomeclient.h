@@ -33,7 +33,7 @@ class EvohomeClient
 	void get_gateways(int location);
 	void get_temperatureControlSystems(int location, int gateway);
 	void get_zones(int location, int gateway, int temperatureControlSystem);
-
+	void get_dhw(int location, int gateway, int temperatureControlSystem);
 
 	public:
 	struct zone
@@ -50,6 +50,7 @@ class EvohomeClient
 	struct temperatureControlSystem
 	{
 		std::vector<zone> zones;
+		std::vector<zone> dhw;
 		Json::Value *installationInfo;
 		Json::Value *status;
 		std::string locationId;
@@ -103,8 +104,10 @@ class EvohomeClient
 	bool schedules_backup(std::string filename);
 	bool schedules_restore(std::string filename);
 	bool read_schedules_from_file(std::string filename);
+	bool get_dhw_schedule(std::string dhwId);
 	bool get_zone_schedule(std::string zoneId);
-	bool set_dhw_schedule(std::string zoneId, Json::Value *schedule);
+	bool get_zone_schedule(std::string zoneId, std::string zoneType);
+	bool set_dhw_schedule(std::string dhwId, Json::Value *schedule);
 	bool set_zone_schedule(std::string zoneId, Json::Value *schedule);
 	bool set_zone_schedule(std::string zoneId, std::string zoneType, Json::Value *schedule);
 
@@ -133,7 +136,7 @@ class EvohomeClient
 	bool cancel_temperature_override(std::string zoneId);
 
 	bool set_dhw_mode(std::string dhwId, std::string mode, std::string time_until);
-	bool set_dhw_mode(std::string systemId, std::string mode);
+	bool set_dhw_mode(std::string dhwId, std::string mode);
 
 	std::string request_next_switchpoint(std::string zoneId);
 
