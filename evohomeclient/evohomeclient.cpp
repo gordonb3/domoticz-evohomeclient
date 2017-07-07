@@ -1303,6 +1303,7 @@ std::string EvohomeClient::utc_to_local(std::string utc_time)
 		time_t now = time(0);
 		struct tm utime;
 		gmtime_r(&now, &utime);
+		utime.tm_isdst = -1;
 		tzoffset = (int)difftime(mktime(&utime), now);
 	}
 	struct tm ltime;
