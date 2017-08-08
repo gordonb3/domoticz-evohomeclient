@@ -447,6 +447,12 @@ bool EvohomeClient::get_status(int location)
 					locations[location].gateways[igw].temperatureControlSystems[itcs].status = &(*j_gw)["temperatureControlSystems"][(int)(itcs)];
 					j_tcs = locations[location].gateways[igw].temperatureControlSystems[itcs].status;
 
+/* ToDo: possible pitfall - does status return objects in the same order as installationInfo?
+ *       according to API description a location can (currently) only contain one gateway and
+ *       a gateway can only contain one TCS, so we should be safe up to this point. Is it also
+ *       safe for zones though, or should we match the zone ID to be sure?
+ */
+
 					// get zone status
 					if ((*j_tcs)["zones"].isArray())
 					{
@@ -659,7 +665,8 @@ bool EvohomeClient::get_zone_schedule(std::string zoneId, std::string zoneType)
 	if (!s_res.find("\"id\""))
 		return false;
 	Json::Reader jReader;
-	if (!jReader.parse(s_res.c_str(), get_zone_by_ID(zoneId)->schedule))
+	EvohomeClient::zone* zone = get_zone_by_ID(zoneId);
+	if ((zone == NULL) || !jReader.parse(s_res.c_str(), zone->schedule))
 		return false;
 	return true;
 }
@@ -674,7 +681,10 @@ bool EvohomeClient::get_zone_schedule(std::string zoneId, std::string zoneType)
  */
 std::string EvohomeClient::get_next_switchpoint(std::string zoneId)
 {
-	return get_next_switchpoint(get_zone_by_ID(zoneId));
+	EvohomeClient::zone* zone = get_zone_by_ID(zoneId);
+	if (zone == NULL)
+		return "";
+	return get_next_switchpoint(zone);
 }
 std::string EvohomeClient::get_next_switchpoint(EvohomeClient::temperatureControlSystem* tcs, int zone)
 {
@@ -781,8 +791,10 @@ std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::s
 			time_t ntime = mktime(&ltime);
 			if (ntime > now)
 				found = true;
-			else
+			else if ((*j_day)["switchpoints"][(int)(i)].isMember("temperature"))
 				current_setpoint = (*j_day)["switchpoints"][(int)(i)]["temperature"].asString();
+			else
+				current_setpoint = (*j_day)["switchpoints"][(int)(i)]["dhwState"].asString();
 		}
 	}
 
@@ -809,7 +821,10 @@ std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::s
 			if (l > 0)
 			{
 				l--;
-				current_setpoint = (*j_day)["switchpoints"][(int)(l)]["temperature"].asString();
+				if ((*j_day)["switchpoints"][(int)(l)].isMember("temperature"))
+					current_setpoint = (*j_day)["switchpoints"][(int)(l)]["temperature"].asString();
+				else
+					current_setpoint = (*j_day)["switchpoints"][(int)(l)]["dhwState"].asString();
 				found = true;
 			}
 		}
@@ -838,7 +853,10 @@ std::string EvohomeClient::get_next_switchpoint_ex(Json::Value &schedule, std::s
  */
 std::string EvohomeClient::get_next_utcswitchpoint(std::string zoneId)
 {
-	return get_next_utcswitchpoint(get_zone_by_ID(zoneId));
+	EvohomeClient::zone* zone = get_zone_by_ID(zoneId);
+	if (zone == NULL)
+		return "";
+	return get_next_utcswitchpoint(zone);
 }
 std::string EvohomeClient::get_next_utcswitchpoint(EvohomeClient::temperatureControlSystem* tcs, int zone)
 {
@@ -1071,7 +1089,8 @@ bool EvohomeClient::read_schedules_from_file(std::string filename)
 					if (j_sched[locations[l]][gateways[g]][temperatureControlSystems[t]][zones[z]].isString())
 						continue;
 					EvohomeClient::zone* zone = get_zone_by_ID(zones[z]);
-					zone->schedule = j_sched[locations[l]][gateways[g]][temperatureControlSystems[t]][zones[z]];
+					if (zone != NULL)
+						zone->schedule = j_sched[locations[l]][gateways[g]][temperatureControlSystems[t]][zones[z]];
 				}
 			}
 		}
