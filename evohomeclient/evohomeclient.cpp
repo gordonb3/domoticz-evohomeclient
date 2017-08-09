@@ -710,10 +710,11 @@ std::string EvohomeClient::get_next_switchpoint(zone* hz)
 {
 	if (hz->schedule.isNull())
 	{
+		std::string zoneType = ((*hz->installationInfo).isMember("dhwId")) ? "domesticHotWater" : "temperatureZone";
 		bool got_schedule;
 		try
 		{
-			got_schedule = get_zone_schedule(hz->zoneId);
+			got_schedule = get_zone_schedule(hz->zoneId, zoneType);
 		}
 		catch (...)
 		{
@@ -882,10 +883,11 @@ std::string EvohomeClient::get_next_utcswitchpoint(zone* hz)
 {
 	if (hz->schedule.isNull())
 	{
+		std::string zoneType = ((*hz->installationInfo).isMember("dhwId")) ? "domesticHotWater" : "temperatureZone";
 		bool got_schedule;
 		try
 		{
-			got_schedule = get_zone_schedule(hz->zoneId);
+			got_schedule = get_zone_schedule(hz->zoneId, zoneType);
 		}
 		catch (...)
 		{

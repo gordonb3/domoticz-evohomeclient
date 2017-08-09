@@ -846,8 +846,7 @@ void cmd_update()
 		if (dhwdata["until"] == "")
 		{
 			EvohomeClient::zone* hz = &tcs->dhw[0];
-			if (!(hz->schedule.isNull()) || eclient.get_dhw_schedule(hz->zoneId))
-				dhwdata["until"] = eclient.get_next_utcswitchpoint(hz);
+			dhwdata["until"] = eclient.get_next_utcswitchpoint(hz);
 		}
 		update_dhw(dclient, dhwdata);
 	}
