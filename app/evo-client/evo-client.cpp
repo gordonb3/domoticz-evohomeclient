@@ -503,7 +503,7 @@ map<std::string, std::string> evo_get_system_data(EvohomeClient::temperatureCont
 	ret["systemMode"] = (*tcs->status)["systemModeStatus"]["mode"].asString();
 	ret["systemId"] = tcs->systemId;
 	if (updatedev)
-		ret["modelType"] = (*tcs->status)["modelType"].asString();
+		ret["modelType"] = (*tcs->installationInfo)["modelType"].asString();
 	return ret;
 }
 
@@ -511,10 +511,10 @@ map<std::string, std::string> evo_get_system_data(EvohomeClient::temperatureCont
 map<std::string, std::string> evo_get_dhw_data(EvohomeClient::temperatureControlSystem* tcs)
 {
 	map<std::string, std::string> ret;
-	if ((*tcs->status).isMember("dhw"))
+	if ((*tcs->installationInfo).isMember("dhw"))
 	{
 		ret["until"] = "";
-		ret["dhwId"] = (*tcs->status)["dhw"]["dhwId"].asString();
+		ret["dhwId"] = (*tcs->installationInfo)["dhw"]["dhwId"].asString();
 		ret["temperature"] = (*tcs->status)["dhw"]["temperatureStatus"]["temperature"].asString();
 		if ((*tcs->status)["dhw"].isMember("stateStatus"))
 		{
@@ -533,8 +533,8 @@ map<std::string, std::string> evo_get_zone_data(EvohomeClient::temperatureContro
 {
 	map<std::string, std::string> ret;
 	ret["until"] = "";
-	ret["zoneId"] = (*tcs->zones[zoneindex].status)["zoneId"].asString();
-	ret["name"] = (*tcs->zones[zoneindex].status)["name"].asString();
+	ret["zoneId"] = (*tcs->zones[zoneindex].installationInfo)["zoneId"].asString();
+	ret["name"] = (*tcs->zones[zoneindex].installationInfo)["name"].asString();
 	ret["temperature"] = (*tcs->zones[zoneindex].status)["temperatureStatus"]["temperature"].asString();
 	ret["targetTemperature"] = (*tcs->zones[zoneindex].status)["heatSetpointStatus"]["targetTemperature"].asString();
 	ret["setpointMode"] = (*tcs->zones[zoneindex].status)["heatSetpointStatus"]["setpointMode"].asString();
