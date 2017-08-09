@@ -500,7 +500,7 @@ void parse_args(int argc, char** argv) {
 map<std::string, std::string> evo_get_system_data(EvohomeClient::temperatureControlSystem* tcs)
 {
 	map<std::string, std::string> ret;
-	ret["systemMode"] = (*tcs->status)["systemModeStatus"]["mode"].asString();
+	ret["systemMode"] = (tcs->status == NULL) ? "Unknown" : (*tcs->status)["systemModeStatus"]["mode"].asString();
 	ret["systemId"] = tcs->systemId;
 	if (updatedev)
 		ret["modelType"] = (*tcs->installationInfo)["modelType"].asString();
@@ -515,10 +515,17 @@ map<std::string, std::string> evo_get_dhw_data(EvohomeClient::temperatureControl
 	{
 		ret["until"] = "";
 		ret["dhwId"] = (*tcs->installationInfo)["dhw"]["dhwId"].asString();
+		if (tcs->status == NULL)
+		{
+			ret["temperature"] = "-";
+			ret["state"] = "-";
+			ret["mode"] = "Offline";
+			return ret;
+		}
+		// else
 		ret["temperature"] = (*tcs->status)["dhw"]["temperatureStatus"]["temperature"].asString();
 		if ((*tcs->status)["dhw"].isMember("stateStatus"))
 		{
-
 			ret["state"] = (*tcs->status)["dhw"]["stateStatus"]["state"].asString();
 			ret["mode"] = (*tcs->status)["dhw"]["stateStatus"]["mode"].asString();
 			if (ret["mode"] == "TemporaryOverride")
@@ -535,6 +542,14 @@ map<std::string, std::string> evo_get_zone_data(EvohomeClient::temperatureContro
 	ret["until"] = "";
 	ret["zoneId"] = (*tcs->zones[zoneindex].installationInfo)["zoneId"].asString();
 	ret["name"] = (*tcs->zones[zoneindex].installationInfo)["name"].asString();
+	if (tcs->zones[zoneindex].status == NULL)
+	{
+		ret["temperature"] = "-";
+		ret["targetTemperature"] = "-";
+		ret["setpointMode"] = "Offline";
+		return ret;
+	}
+	// else
 	ret["temperature"] = (*tcs->zones[zoneindex].status)["temperatureStatus"]["temperature"].asString();
 	ret["targetTemperature"] = (*tcs->zones[zoneindex].status)["heatSetpointStatus"]["targetTemperature"].asString();
 	ret["setpointMode"] = (*tcs->zones[zoneindex].status)["heatSetpointStatus"]["setpointMode"].asString();
