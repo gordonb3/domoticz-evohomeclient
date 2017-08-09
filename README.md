@@ -40,12 +40,12 @@ A computer running Domoticz of course! If you compile your own beta versions of 
 
 Scared about building yourself? I'm providing prebuilt binaries for the following systems:
 
-1. [Windows 32bit]( ../../releases/download/1.3.0/evo-client-win-x86-1.3.0.zip )
-1. [Linux 32bit]( ../../releases/download/1.3.0/evo-client-linux-x86-1.3.0.tar.gz )
-1. [Linux 64bit]( ../../releases/download/1.3.0/evo-client-linux-x64-1.3.0.tar.gz )
-1. [Linux armv5te]( ../../releases/download/1.3.0/evo-client-linux-armv5te-1.3.0.tar.gz )<br>
+1. [Windows 32bit]( ../../releases/download/1.4.0/evo-client-win-x86-1.4.0.zip )
+1. [Linux 32bit]( ../../releases/download/1.4.0/evo-client-linux-x86-1.4.0.tar.gz )
+1. [Linux 64bit]( ../../releases/download/1.4.0/evo-client-linux-x64-1.4.0.tar.gz )
+1. [Linux armv5te]( ../../releases/download/1.4.0/evo-client-linux-armv5te-1.4.0.tar.gz )<br>
 (e.g. Excito B3, SheevaPlug, Linksys NSLU2, QNAP TS109/209/409, ...)
-1. [Linux armv7l]( ../../releases/download/1.3.0/evo-client-linux-armv7l-1.3.0.tar.gz ) !!! Untested<br>
+1. [Linux armv7l]( ../../releases/download/1.4.0/evo-client-linux-armv7l-1.4.0.tar.gz ) !!! Untested<br>
 (e.g. Rpi2|3 32bit)
 
 
@@ -58,6 +58,7 @@ You need to fill in some details in evoconfig. A sample file with instructions i
 1. update url and port if applicable (e.g. different port, different server, different webroot)
 
 Run ` evo-client --init ` to add your evohome installation to Domoticz (if you migrated from the python scripts you can skip this step). The client's default action, i.e. when run without parameters, is to update Domoticz with the current status values of your evohome installation. Note that evohome schedules are cached, so if you change those on the controller you will need to refresh them in the client to have Domoticz show the correct until time.<br>
+
 Run ` evo-client --help ` to view more options.
 
 ## Feedback Welcome!
