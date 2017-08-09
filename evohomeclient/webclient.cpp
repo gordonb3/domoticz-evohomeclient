@@ -14,6 +14,7 @@
 #include <map>
 #include "webclient.h"
 #include <curl/curl.h>
+#include <stdexcept>
 
 
 CURLcode res;

@@ -17,6 +17,8 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
+#include <stdexcept>
+
 
 #define EVOHOME_HOST "https://tccna.honeywell.com"
 

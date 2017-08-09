@@ -101,8 +101,21 @@ int main(int argc, char** argv)
 
 
 // retrieve Evohome status
+	std::cout << "retrieve Evohome status\n";
 	if ( !	eclient.get_status(location) )
 		std::cout << "status fail" << "\n";
+/*
+	std::cout << "\nDump of full installationinfo\n";
+	std::cout << eclient.j_fi.toStyledString() << "\n";
+*/
+/*
+	std::cout << "\nDump of full status\n";
+	std::cout << eclient.j_stat.toStyledString() << "\n";
+*/
+/*
+	std::cout << "\nDump of full installationinfo\n";
+	std::cout << v1client.j_fi.toStyledString() << "\n";
+*/
 
 // retrieving schedules and/or switchpoints can be slow because we can only fetch them for a single zone at a time.
 // luckily schedules do not change very often, so we can use a local cache
@@ -187,6 +200,10 @@ int main(int argc, char** argv)
 /*
 	std::cout << "\nDump of full installationinfo\n";
 	std::cout << eclient.j_fi.toStyledString() << "\n";
+*/
+/*
+	std::cout << "\nDump of full status\n";
+	std::cout << eclient.j_stat.toStyledString() << "\n";
 */
 /*
 	std::cout << "\nDump of full installationinfo\n";

@@ -14,6 +14,7 @@
 #include <sstream>
 #include "webclient.h"
 #include "evohomeoldclient.h"
+#include <stdexcept>
 
 
 #define EVOHOME_HOST "https://tccna.honeywell.com"
