@@ -567,62 +567,6 @@ std::string int_to_string(int myint)
 }
 
 
-std::string local_to_utc(std::string local_time)
-{
-	if (local_time.size() <  19)
-		return "";
-	if (tzoffset == -1)
-	{
-		// calculate timezone offset once
-		time_t now = time(0);
-		struct tm utime;
-		gmtime_r(&now, &utime);
-		utime.tm_isdst = -1;
-		tzoffset = (int)difftime(mktime(&utime), now);
-	}
-	struct tm ltime;
-	ltime.tm_isdst = -1;
-	ltime.tm_year = atoi(local_time.substr(0, 4).c_str()) - 1900;
-	ltime.tm_mon = atoi(local_time.substr(5, 2).c_str()) - 1;
-	ltime.tm_mday = atoi(local_time.substr(8, 2).c_str());
-	ltime.tm_hour = atoi(local_time.substr(11, 2).c_str());
-	ltime.tm_min = atoi(local_time.substr(14, 2).c_str());
-	ltime.tm_sec = atoi(local_time.substr(17, 2).c_str()) + tzoffset;
-	mktime(&ltime);
-	char until[22];
-	sprintf_s(until,22,"%04d-%02d-%02dT%02d:%02d:%02dZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,ltime.tm_hour,ltime.tm_min,ltime.tm_sec);
-	return std::string(until);
-}
-
-
-std::string utc_to_local(std::string utc_time)
-{
-	if (utc_time.size() <  19)
-		return "";
-	if (tzoffset == -1)
-	{
-		// calculate timezone offset once
-		struct tm utime;
-		gmtime_r(&now, &utime);
-		tzoffset = (int)difftime(mktime(&utime), now);
-	}
-	struct tm ltime;
-	ltime.tm_isdst = -1;
-	ltime.tm_year = atoi(utc_time.substr(0, 4).c_str()) - 1900;
-	ltime.tm_mon = atoi(utc_time.substr(5, 2).c_str()) - 1;
-	ltime.tm_mday = atoi(utc_time.substr(8, 2).c_str());
-	ltime.tm_hour = atoi(utc_time.substr(11, 2).c_str());
-	ltime.tm_min = atoi(utc_time.substr(14, 2).c_str());
-	ltime.tm_sec = atoi(utc_time.substr(17, 2).c_str()) - tzoffset;
-	time_t ntime = mktime(&ltime);
-	ntime--; // prevent compiler warning
-	char until[40];
-	sprintf_s(until,40,"%04d-%02d-%02dT%02d:%02d:%02dZ",ltime.tm_year+1900,ltime.tm_mon+1,ltime.tm_mday,ltime.tm_hour,ltime.tm_min,ltime.tm_sec);
-	return string(until);
-}
-
-
-
 // Get Evohome hardware ID from Domoticz
 int get_evohome_hardwareId(DomoticzClient &dclient)
 {
@@ -916,7 +860,7 @@ void cmd_update()
 	{
 		std::map<std::string, std::string> zonedata = evo_get_zone_data(tcs, i);
 		if (zonedata["until"].length() == 0)
-			zonedata["until"] = local_to_utc(eclient.get_next_switchpoint(tcs, i));
+			zonedata["until"] = eclient.get_next_utcswitchpoint(tcs, i);
 		update_zone(dclient, zonedata, heating_off);
 	}
 
