@@ -45,8 +45,10 @@ Scared about building yourself? I'm providing prebuilt binaries for the followin
 1. [Linux 64bit]( ../../releases/download/1.4.0/evo-client-linux-x64-1.4.0.tar.gz )
 1. [Linux armv5te]( ../../releases/download/1.4.0/evo-client-linux-armv5te-1.4.0.tar.gz )<br>
 (e.g. Excito B3, SheevaPlug, Linksys NSLU2, QNAP TS109/209/409, ...)
-1. [Linux armv7l]( ../../releases/download/1.4.0/evo-client-linux-armv7l-1.4.0.tar.gz ) !!! Untested<br>
+1. [Linux armv7l]( ../../releases/download/1.4.0/evo-client-linux-armv7l-1.4.0.tar.gz )<br>
 (e.g. Rpi2|3 32bit)
+
+To run the Windows version you'll need to have [VC_redist]( https://www.microsoft.com/en-us/download/details.aspx?id=48145 ) installed. The Linux versions have been built against libc version 2.23 (armv7l: version 2.19) and thus require a fairly recent installation like Debian Sid or a rolling release (e.g. Arch, Gentoo). The armv7l version should work with Jessie.
 
 
 ## Running the client
