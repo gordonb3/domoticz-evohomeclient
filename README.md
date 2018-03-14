@@ -1,17 +1,13 @@
-# Evohomeclient
+# Domoticz-Evohomeclient
 
-C++ hack to the Honeywell Evohome API
+An implementation of the C++ hack to the Honeywell Evohome API
 
 ## Description
 
 This project takes a lot of its ideas from watchforstock's Python based evohomeclient and an implementation of this client as posted on the Domoticz wiki.
 
 Reason for redeveloping this in C++ is that I run Domoticz on a rather tiny machine and Python is quite heavy 
-on resources. And slow. Of course, if you like the lib you can use it for any other project.
-
-## Demo
-
-There are several (simple) demos included in this project that show how the library can be used. Feel free to use whatever you like from these sources to build your own project using this library. Run ` make demo ` to build and check out these demos.
+on resources. And slow. Of course, if you like the libs you can use them for any other project.
 
 ## Implementation
 
